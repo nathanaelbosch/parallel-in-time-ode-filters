@@ -10,6 +10,9 @@ from parsmooth.parallel import ekf
 from parsmooth.sequential import ieks as seq_ieks
 from parsmooth.utils import MVNormalParameters
 
+seqekf = jax.jit(parsmooth.sequential.ekf, static_argnums=(2, 4, 7))
+parieks = jax.jit(parsmooth.parallel.ieks, static_argnums=(2, 4, 7))
+
 
 def diffrax_solve(ivp, ts, rtol=1e-3, atol=1e-3, max_steps=int(1e6)):
     vector_field = lambda t, y, args: ivp.f(t, y)
@@ -73,8 +76,8 @@ def get_initial_guess(ivp: tornadox.ivp.InitialValueProblem, order: int):
 
 def solve_ekf(
     ivp,
+    dt,
     order=3,
-    dt=1e-2,
     diffusion=0.1,
 ):
 
@@ -94,16 +97,15 @@ def solve_ekf(
 
     initial_guess = get_initial_guess(ivp, order)
 
-    _, states = parsmooth.sequential.ekf(initial_guess, data, tfun, Q, ofun, R)
+    _, states = seqekf(initial_guess, data, tfun, Q, ofun, R)
 
     return times, states
 
 
-# @jax.jit
 def solve_ieks(
     ivp,
+    dt,
     order=3,
-    dt=1e-2,
     diffusion=0.1,
     linearize_at=None,
     n_iter=10,
@@ -130,8 +132,6 @@ def solve_ieks(
         xs = jnp.concatenate((ys[0:-1], jnp.zeros((N, d * q))), 1)
         Ps = jnp.zeros((N, D, D))
         linearize_at = MVNormalParameters(xs, Ps)
-    states = parsmooth.parallel.ieks(
-        initial_guess, data, tfun, Q, ofun, R, linearize_at, n_iter=n_iter
-    )
+    states = parieks(initial_guess, data, tfun, Q, ofun, R, linearize_at, n_iter=n_iter)
 
     return times, states
