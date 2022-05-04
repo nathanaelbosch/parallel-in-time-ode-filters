@@ -39,17 +39,7 @@ def diffrax_solve(ivp, ts, rtol=1e-3, atol=1e-3, max_steps=int(1e6)):
     return ts, ys
 
 
-def solve(
-    f,
-    y0,
-    T,
-    order=3,
-    dt=1e-2,
-    diffusion=0.1,
-    method="ekf",
-    n_iter="auto",
-):
-
+def make_filter_args(f, y0, T, order, dt, diffusion=0.1):
     d, q = y0.shape[0], order
     D = d * (q + 1)
 
@@ -78,46 +68,37 @@ def solve(
     m0, P0 = jnp.concatenate(m0.T), jnp.kron(jnp.eye(d), P0)
     m0, P0 = PI @ m0, PI @ P0 @ PI
     x0 = MVNSqrt(m0, P0)
+    return transition_model, observation_model, data, x0, times, E0
 
-    kwargs = {
-        "observations": data,
-        "x0": x0,
-        "transition_model": transition_model,
-        "observation_model": observation_model,
-        "linearization_method": extended,
-    }
-    if method.lower() == "ekf":
-        res = parsmooth.filtering(
-            **kwargs,
-            nominal_trajectory=None,
-            parallel=False,
-        )
-    elif method.lower() == "eks":
-        res = parsmooth.filter_smoother(
-            **kwargs,
-            nominal_trajectory=None,
-            parallel=False,
-        )
-    elif method.lower() == "ieks":
-        init_lin = MVNSqrt(
-            jnp.repeat(x0.mean.reshape(1, -1), data.shape[0] + 1, axis=0),
-            jnp.zeros((data.shape[0] + 1, d * (order + 1), d * (order + 1))),
-        )
-        if n_iter == "auto":
-            criterion = mse_criterion
-        else:
-            criterion = lambda i, *args: i < n_iter
 
-        res = parsmooth.iterated_smoothing(
-            **kwargs,
-            init_nominal_trajectory=init_lin,
-            parallel=False,
-            criterion=criterion,
-        )
+def solve_ek(
+    f,
+    y0,
+    T,
+    order=3,
+    dt=1e-2,
+    diffusion=0.1,
+    smooth=True,
+    return_full_states=False,
+):
+    tm, om, data, x0, ts, E0 = make_filter_args(f, y0, T, order, dt)
+
+    kwargs = {}
+    method = parsmooth.filter_smoother if smooth else parsmooth.filter
+    states = method(
+        observations=data,
+        x0=x0,
+        transition_model=tm,
+        observation_model=om,
+        linearization_method=extended,
+        nominal_trajectory=None,
+        parallel=False,
+    )
+
+    if return_full_states:
+        return ts, states
     else:
-        raise ValueError(f"The specified method {method} is not supported.")
-
-    return times, jnp.dot(E0, res.mean.T).T
+        return ts, jnp.dot(E0, states.mean.T).T
 
 
 def mse_criterion(i, prev_traj, curr_traj, tol=1e-6):
