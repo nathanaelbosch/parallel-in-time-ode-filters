@@ -1,0 +1,51 @@
+
+
+* Runtime evolution for an increasing number of data points
+|     N | seq-cpu | par-gpu | ratio (cpu/gpu) |
+|-------+---------+---------+-----------------|
+|   100 |     3.7 |    13.7 |             3.7 |
+|   200 |       7 |    20.2 |             2.9 |
+|   400 |    14.2 |    31.6 |             2.2 |
+|   800 |    28.3 |    53.3 |             1.9 |
+|  1600 |    56.8 |    96.7 |             1.7 |
+|  3200 |     113 |     180 |             1.6 |
+|  6400 |     227 |     346 |             1.5 |
+| 12800 |     468 |     677 |             1.4 |
+#+TBLFM: $4=round(10*$3/$2)/10
+
+
+* Runtimes on the ML-Cloud
+#+tblname: times
+|     N | seq-cpu | par-gpu | ratio (cpu/gpu) |
+|-------+---------+---------+-----------------|
+|   100 |       4 |      11 |             2.8 |
+|   200 |       8 |      14 |             1.8 |
+|   400 |      16 |      19 |             1.2 |
+|   800 |      35 |      30 |             0.9 |
+|  1600 |      70 |      43 |             0.6 |
+|  3200 |     141 |      66 |             0.5 |
+|  6400 |     279 |     106 |             0.4 |
+| 12800 |     552 |     185 |             0.3 |
+| 25600 |    1060 |     338 |             0.3 |
+| 51200 |    2260 |     668 |             0.3 |
+#+TBLFM: $4=round(10*$3/$2)/10
+
+#+begin_src python :var data=times :results file
+  import matplotlib.pyplot as plt
+  # plt.plot(
+  Ns, cpus, gpus, ratios = zip(*data)
+  plt.plot(Ns, cpus, label="Sequential on CPU", marker="o")
+  plt.plot(Ns, gpus, label="Parallel on GPU", marker="o")
+  plt.yscale("log")
+  plt.xscale("log")
+  plt.xlabel("Number of Steps")
+  plt.ylabel("Runtime (single IEKS step) [ms]")
+  plt.legend()
+  plt.tight_layout()
+  filepath = "/tmp/temporgplot.png"
+  plt.savefig(filepath)
+  return filepath
+#+end_src
+
+#+RESULTS:
+[[file:/tmp/temporgplot.png]]
