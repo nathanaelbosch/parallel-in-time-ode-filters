@@ -7,7 +7,7 @@ import parsmooth
 import tornadox
 import diffrax
 
-from .utils import MVNSqrt, FunctionalModel, AffineModel, linearize
+from .utils import MVNSqrt, AffineModel, linearize
 from parsmooth.linearization import extended, cubature
 
 # from parsmooth.parallel import ekf
@@ -55,7 +55,7 @@ def make_filter_args(f, y0, T, order, dt, diffusion=0.1):
 
     c = jnp.zeros(d)
     RS = 0 * jnp.eye(d)
-    observation_model = FunctionalModel(lambda x: E1 @ x - f(None, E0 @ x))
+    observation_model = lambda x: E1 @ x - f(None, E0 @ x)
 
     times = jnp.arange(0, T + dt, dt)
     data = jnp.zeros((len(times) - 1, d))

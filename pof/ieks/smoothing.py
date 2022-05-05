@@ -6,7 +6,7 @@ import jax.scipy.linalg as jlinalg
 
 from parsmooth._utils import none_or_concat
 
-from pof.utils import tria, linearize, AffineModel, FunctionalModel, MVNSqrt
+from pof.utils import tria, linearize, AffineModel, MVNSqrt
 from pof.ieks.operators import sqrt_smoothing_operator
 
 

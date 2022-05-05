@@ -10,7 +10,6 @@ from pof.utils import (
     tria,
     linearize,
     AffineModel,
-    FunctionalModel,
     MVNSqrt,
     append_zeros_along_new_axis,
 )
@@ -20,7 +19,7 @@ from pof.ieks.operators import sqrt_filtering_operator
 def filtering(
     x0: MVNSqrt,
     transition_model: AffineModel,
-    observation_model: FunctionalModel,
+    observation_model: Callable,
     cholQ: jnp.ndarray,
     cholR: jnp.ndarray,
     nominal_trajectory: jnp.ndarray,

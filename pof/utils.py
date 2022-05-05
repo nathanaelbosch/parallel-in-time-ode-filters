@@ -1,5 +1,6 @@
 from typing import NamedTuple, Callable, Any, Union, Tuple
 import itertools
+from functools import partial
 
 import jax
 import jax.numpy as jnp
@@ -8,13 +9,6 @@ import jax.numpy as jnp
 class MVNSqrt(NamedTuple):
     mean: Any
     chol: Any
-
-
-class FunctionalModel(NamedTuple):
-    function: Callable
-
-    def __call__(self, x):
-        return self.function(x)
 
 
 class AffineModel(NamedTuple):
@@ -76,9 +70,9 @@ def _householder(a):
     return v, tau
 
 
-def linearize(model: FunctionalModel, x: jnp.ndarray):
-    assert isinstance(model, FunctionalModel)
-    f = model.function
+@partial(jax.jit, static_argnums=(0,))
+def linearize(f: Callable, x: jnp.ndarray):
+    assert isinstance(f, Callable)
     res, F_x = f(x), jax.jacfwd(f, 0)(x)
     return AffineModel(F_x, res - F_x @ x)
 
