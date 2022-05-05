@@ -7,7 +7,7 @@ import parsmooth
 import tornadox
 import diffrax
 
-from parsmooth import MVNSqrt, FunctionalModel
+from .utils import MVNSqrt, FunctionalModel, AffineModel, linearize
 from parsmooth.linearization import extended, cubature
 
 # from parsmooth.parallel import ekf
@@ -51,14 +51,11 @@ def make_filter_args(f, y0, T, order, dt, diffusion=0.1):
     E1 = iwp.projection_matrix(1) @ P
     A, QL = iwp.preconditioned_discretize
 
-    b = jnp.zeros(D)
-    transition_model = FunctionalModel(lambda x: A @ x, MVNSqrt(b, QL))
+    transition_model = AffineModel(A, jnp.zeros(D))
 
     c = jnp.zeros(d)
     RS = 0 * jnp.eye(d)
-    observation_model = FunctionalModel(
-        lambda x: E1 @ x - f(None, E0 @ x), MVNSqrt(c, RS)
-    )
+    observation_model = FunctionalModel(lambda x: E1 @ x - f(None, E0 @ x))
 
     times = jnp.arange(0, T + dt, dt)
     data = jnp.zeros((len(times) - 1, d))
@@ -68,7 +65,7 @@ def make_filter_args(f, y0, T, order, dt, diffusion=0.1):
     m0, P0 = jnp.concatenate(m0.T), jnp.kron(jnp.eye(d), P0)
     m0, P0 = PI @ m0, PI @ P0 @ PI
     x0 = MVNSqrt(m0, P0)
-    return transition_model, observation_model, data, x0, times, E0
+    return transition_model, observation_model, QL, RS, data, x0, times, E0
 
 
 def solve_ek(
