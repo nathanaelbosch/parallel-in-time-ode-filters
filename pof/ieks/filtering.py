@@ -24,17 +24,26 @@ def filtering(
     cholR: jnp.ndarray,
     nominal_trajectory: jnp.ndarray,
 ):
-    """Filter a SSM with linear transitions and non-linear observations.
-
-    The `transition_model` is assumed to be constant over time;
-    the `observation_model` is linearized along the passed `nominal_trajectory`.
-    Filtering is done in parallel via `jax.lax.associative_scan`.
-    """
     lin_obs_mod = jax.vmap(linearize, in_axes=[None, 0])(
         observation_model, nominal_trajectory
     )
+    return linear_filtering(x0, transition_model, lin_obs_mod, cholQ, cholR)
 
-    elems = get_elements(transition_model, lin_obs_mod, cholQ, cholR, x0)
+
+def linear_filtering(
+    x0: MVNSqrt,
+    transition_model: AffineModel,
+    observation_model: AffineModel,
+    cholQ: jnp.ndarray,
+    cholR: jnp.ndarray,
+):
+    """Filter a linear state-space model.
+
+    The `transition_model` is assumed to be constant over time;
+    the `observation_model` is assumed to change each step.
+    Filtering is done in parallel via `jax.lax.associative_scan`.
+    """
+    elems = get_elements(transition_model, observation_model, cholQ, cholR, x0)
 
     _, means, cholcovs, _, _ = jax.lax.associative_scan(
         jax.vmap(sqrt_filtering_operator), elems
