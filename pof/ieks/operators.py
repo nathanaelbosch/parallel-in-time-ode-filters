@@ -6,6 +6,7 @@ from pof.utils import tria
 
 
 @jax.jit
+@jax.vmap
 def sqrt_filtering_operator(elem1, elem2):
     A1, b1, U1, eta1, Z1 = elem1
     A2, b2, U2, eta2, Z2 = elem2
@@ -33,6 +34,7 @@ def sqrt_filtering_operator(elem1, elem2):
 
 
 @jax.jit
+@jax.vmap
 def sqrt_smoothing_operator(elem1, elem2):
     g1, E1, D1 = elem1
     g2, E2, D2 = elem2

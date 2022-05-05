@@ -17,24 +17,17 @@ def smoothing(
 ):
     assert isinstance(filter_trajectory, MVNSqrt)
 
-    associative_params = _associative_params(
-        transition_model,
-        cholQ,
-        filter_trajectory,
-    )
+    elems = get_elements(transition_model, cholQ, filter_trajectory)
     smoothed_means, _, smoothed_chols = jax.lax.associative_scan(
-        jax.vmap(sqrt_smoothing_operator), associative_params, reverse=True
+        sqrt_smoothing_operator, elems, reverse=True
     )
     res = jax.vmap(MVNSqrt)(smoothed_means, smoothed_chols)
 
     return res
 
 
-def _associative_params(
-    transition_model,
-    cholQ,
-    filtering_trajectory,
-):
+@jax.jit
+def get_elements(transition_model, cholQ, filtering_trajectory):
     ms, Ps = filtering_trajectory
     vmapped_fn = jax.vmap(_sqrt_associative_params, in_axes=[None, None, 0, 0])
     gs, Es, Ls = vmapped_fn(transition_model, cholQ, ms[:-1], Ps[:-1])
@@ -42,6 +35,7 @@ def _associative_params(
     return none_or_concat((gs, Es, Ls), (g_T, E_T, L_T), -1)
 
 
+@jax.jit
 def _sqrt_associative_params(transition_model, cholQ, m, chol_P):
     F, b = transition_model
     nx = cholQ.shape[0]

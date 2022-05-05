@@ -45,9 +45,7 @@ def linear_noiseless_filtering(
     """
     elems = get_elements(transition_model, observation_model, cholQ, x0)
 
-    _, means, cholcovs, _, _ = jax.lax.associative_scan(
-        jax.vmap(sqrt_filtering_operator), elems
-    )
+    _, means, cholcovs, _, _ = jax.lax.associative_scan(sqrt_filtering_operator, elems)
 
     means = jnp.concatenate([x0.mean[None, ...], means])
     cholcovs = jnp.concatenate([x0.chol[None, ...], cholcovs])
