@@ -14,12 +14,14 @@ from parsmooth.linearization import extended, cubature
 # from parsmooth.sequential._filtering import filtering as seq_ekf
 
 
-def diffrax_solve(ivp, ts, rtol=1e-3, atol=1e-3, max_steps=int(1e6)):
+def solve_diffrax(ivp, ts=None, rtol=1e-3, atol=1e-3, max_steps=int(1e6)):
     vector_field = lambda t, y, args: ivp.f(t, y)
     term = diffrax.ODETerm(vector_field)
     solver = diffrax.Dopri5()
-    # saveat = diffrax.SaveAt(steps=True)
-    saveat = diffrax.SaveAt(t1=True, ts=ts)
+    if ts is None:
+        saveat = diffrax.SaveAt(steps=True, t0=True, dense=True)
+    else:
+        saveat = diffrax.SaveAt(ts=ts)
     stepsize_controller = diffrax.PIDController(rtol=rtol, atol=atol)
 
     sol = diffrax.diffeqsolve(
@@ -33,10 +35,11 @@ def diffrax_solve(ivp, ts, rtol=1e-3, atol=1e-3, max_steps=int(1e6)):
         stepsize_controller=stepsize_controller,
         max_steps=max_steps,
     )
+    # return sol
     idxs = jnp.isfinite(sol.ts)
     ts = sol.ts[idxs]
     ys = sol.ys[idxs]
-    return ts, ys
+    return ts, ys, sol
 
 
 def make_filter_args(f, y0, T, order, dt, diffusion=0.1):
