@@ -24,10 +24,12 @@ def discretize_transitions(iwp, times):
     return get_transitions(iwp, steps)
 
 
-def get_constant_initial_trajectory(y0, order, N):
+def get_constant_initial_trajectory(y0, dy0, order, N):
     d = y0.shape[0]
-    x0 = jnp.concatenate([y0, jnp.zeros(d * order)])
-    return jnp.repeat(x0.reshape(1, -1), N, axis=0)
+    _x0 = jnp.concatenate(
+        [y0[:, None], dy0[:, None], jnp.zeros((d, (order - 1)))], axis=1
+    )
+    return jnp.repeat(_x0.reshape(1, -1), N, axis=0)
 
 
 def linearize_observation_model(observation_model, trajectory):
