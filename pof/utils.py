@@ -20,6 +20,7 @@ class AffineModel(NamedTuple):
 
 
 # @jax.jit
+@jax.jit
 def tria(A):
     return qr(A.T).T
 
@@ -28,6 +29,7 @@ def qr(A: jnp.ndarray):
     return _qr(A)
 
 
+@partial(jax.jit, static_argnames="return_q")
 def _qr(A: jnp.ndarray, return_q=False):
     m, n = A.shape
     min_ = min(m, n)

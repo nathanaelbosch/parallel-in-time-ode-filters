@@ -36,7 +36,7 @@ def linear_noiseless_filtering(
 @jax.jit
 def _get_element(transition_model, observation_model, xs):
     F, cholQ = transition_model
-    H, c = observation_model
+    H, c, cholR = observation_model
 
     ms, Ls = xs  # for any but the first, we have (0, 0)
 
@@ -45,7 +45,7 @@ def _get_element(transition_model, observation_model, xs):
 
     m1 = F @ ms  # = 0
     N1_ = tria(jnp.concatenate((F @ Ls, cholQ), axis=1))  # = cholQ
-    Psi_ = jnp.block([[H @ N1_, jnp.zeros((ny, ny))], [N1_, jnp.zeros((nx, ny))]])
+    Psi_ = jnp.block([[H @ N1_, cholR], [N1_, jnp.zeros((nx, ny))]])
     Tria_Psi_ = tria(Psi_)
     Psi11 = Tria_Psi_[:ny, :ny]
     Psi21 = Tria_Psi_[ny:, :ny]
