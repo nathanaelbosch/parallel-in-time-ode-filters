@@ -6,7 +6,13 @@ import jax.scipy.linalg as jlinalg
 
 from parsmooth._utils import none_or_concat
 
-from pof.utils import tria, MVNSqrt, append_zeros_along_new_axis
+from pof.utils import (
+    tria,
+    MVNSqrt,
+    append_zeros_along_new_axis,
+    mvn_loglikelihood,
+    objective_function_value,
+)
 from pof.ieks.operators import sqrt_filtering_operator
 
 
@@ -30,7 +36,14 @@ def linear_noiseless_filtering(
 
     means = jnp.concatenate([x0.mean[None, ...], means])
     cholcovs = jnp.concatenate([x0.chol[None, ...], cholcovs])
-    return MVNSqrt(means, cholcovs)
+
+    nlls = jax.vmap(_nll)(
+        transition_models, observation_models, means[:-1], cholcovs[:-1]
+    )
+
+    obj = jax.vmap(objective_function_value)(means[:-1], means[1:], transition_models)
+
+    return MVNSqrt(means, cholcovs), jnp.sum(nlls), jnp.sum(obj)
 
 
 @jax.jit
@@ -65,3 +78,15 @@ def _get_element(transition_model, observation_model, xs):
         Z = tria(Z)
 
     return A, b_sqr, U, eta, Z
+
+
+@jax.jit
+def _nll(transition_model, observation_model, m, cholP):
+    F, cholQ = transition_model
+    H, c, cholR = observation_model
+    ny = c.shape[0]
+    predicted_mean = F @ m
+    predicted_chol = tria(jnp.concatenate([F @ cholP, cholQ], axis=1))
+    obs_mean = H @ predicted_mean + c
+    obs_chol = tria(jnp.concatenate([H @ predicted_chol, cholR], axis=1))
+    return -mvn_loglikelihood(obs_mean, obs_chol)

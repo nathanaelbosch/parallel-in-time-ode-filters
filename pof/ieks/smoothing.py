@@ -6,7 +6,7 @@ import jax.scipy.linalg as jlinalg
 
 from parsmooth._utils import none_or_concat
 
-from pof.utils import tria, MVNSqrt
+from pof.utils import tria, MVNSqrt, objective_function_value
 from pof.ieks.operators import sqrt_smoothing_operator
 
 
@@ -17,12 +17,14 @@ def smoothing(
     assert isinstance(filter_trajectory, MVNSqrt)
 
     elems = get_elements(transition_models, filter_trajectory)
-    smoothed_means, _, smoothed_chols = jax.lax.associative_scan(
+    means, _, chols = jax.lax.associative_scan(
         sqrt_smoothing_operator, elems, reverse=True
     )
-    res = jax.vmap(MVNSqrt)(smoothed_means, smoothed_chols)
+    res = jax.vmap(MVNSqrt)(means, chols)
 
-    return res
+    obj = jax.vmap(objective_function_value)(means[:-1], means[1:], transition_models)
+
+    return res, jnp.sum(obj)
 
 
 @jax.jit

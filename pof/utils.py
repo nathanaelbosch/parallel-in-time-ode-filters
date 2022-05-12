@@ -4,6 +4,7 @@ from functools import partial
 
 import jax
 import jax.numpy as jnp
+import jax.scipy.linalg as jlinalg
 
 
 class MVNSqrt(NamedTuple):
@@ -19,7 +20,17 @@ class AffineModel(NamedTuple):
         return self.A @ x + self.b
 
 
-# @jax.jit
+@jax.jit
+def mvn_loglikelihood(x, chol_cov):
+    dim = chol_cov.shape[0]
+    y = jax.scipy.linalg.solve_triangular(chol_cov, x, lower=True)
+    normalizing_constant = (
+        jnp.sum(jnp.log(jnp.abs(jnp.diag(chol_cov)))) + dim * jnp.log(2 * jnp.pi) / 2.0
+    )
+    norm_y = jnp.sum(y * y, -1)
+    return -0.5 * norm_y - normalizing_constant
+
+
 @jax.jit
 def tria(A):
     return qr(A.T).T
@@ -81,3 +92,10 @@ def linearize(f: Callable, x: jnp.ndarray):
 
 def append_zeros_along_new_axis(z, N):
     return jnp.concatenate([z[None, ...], jnp.zeros_like(z, shape=(N,) + z.shape)])
+
+
+@jax.jit
+def objective_function_value(mnext, m, transition_model):
+    F, QL = transition_model
+    r = jlinalg.solve_triangular(QL, mnext - F @ m, lower=True)
+    return jnp.dot(r, r)
