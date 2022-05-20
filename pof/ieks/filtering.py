@@ -81,7 +81,7 @@ def _get_element(transition_model, observation_model, xs):
 
 
 @jax.jit
-def _nll(transition_model, observation_model, m, cholP):
+def _get_obs(transition_model, observation_model, m, cholP):
     F, cholQ = transition_model
     H, c, cholR = observation_model
     ny = c.shape[0]
@@ -89,4 +89,9 @@ def _nll(transition_model, observation_model, m, cholP):
     predicted_chol = tria(jnp.concatenate([F @ cholP, cholQ], axis=1))
     obs_mean = H @ predicted_mean + c
     obs_chol = tria(jnp.concatenate([H @ predicted_chol, cholR], axis=1))
+    return obs_mean, obs_chol
+
+@jax.jit
+def _nll(transition_model, observation_model, m, cholP):
+    obs_mean, obs_chol = _get_obs(transition_model, observation_model, m, cholP)
     return -mvn_loglikelihood(obs_mean, obs_chol)
