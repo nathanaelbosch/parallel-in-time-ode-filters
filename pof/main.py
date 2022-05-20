@@ -46,7 +46,7 @@ def get_initial_trajectory(y0, f, order, N=None, with_dy=True):
         else:
             dy0 = jnp.zeros_like(y0)
         traj = jnp.concatenate(
-            [y0[:, :, None], dy0[:, :, None], jnp.zeros((N, d, (order - 1)))], axis=1
+            [y0[:, :, None], dy0[:, :, None], jnp.zeros((N, d, (order - 1)))], axis=2
         )
         traj = traj.reshape(N, -1)
     return traj
