@@ -3,11 +3,10 @@ from typing import Callable, Optional, Union
 import jax
 import jax.numpy as jnp
 import jax.scipy.linalg as jlinalg
-
 from parsmooth._utils import none_or_concat
 
-from pof.utils import tria, MVNSqrt, objective_function_value
 from pof.ieks.operators import sqrt_smoothing_operator
+from pof.utils import MVNSqrt, objective_function_value, tria
 
 
 def smoothing(

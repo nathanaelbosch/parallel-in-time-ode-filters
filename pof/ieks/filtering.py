@@ -3,17 +3,16 @@ from typing import Callable, Optional, Union
 import jax
 import jax.numpy as jnp
 import jax.scipy.linalg as jlinalg
-
 from parsmooth._utils import none_or_concat
 
+from pof.ieks.operators import sqrt_filtering_operator
 from pof.utils import (
-    tria,
     MVNSqrt,
     append_zeros_along_new_axis,
     mvn_loglikelihood,
     objective_function_value,
+    tria,
 )
-from pof.ieks.operators import sqrt_filtering_operator
 
 
 def linear_noiseless_filtering(

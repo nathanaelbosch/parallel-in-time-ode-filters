@@ -1,21 +1,19 @@
 import jax
 import jax.numpy as jnp
-
-import tornadox
 import matplotlib.pyplot as plt
+import tornadox
 from tqdm import trange
 
 import pof
+from pof.ieks import filtsmooth
 from pof.main import (
-    make_continuous_models,
     discretize_transitions,
     get_constant_initial_trajectory,
-    linearize_observation_model,
     get_x0,
+    linearize_observation_model,
+    make_continuous_models,
 )
-from pof.ieks import filtsmooth
 from pof.solve import solve_diffrax
-
 
 ivp = tornadox.ivp.vanderpol_julia(stiffness_constant=1e0, tmax=8)
 

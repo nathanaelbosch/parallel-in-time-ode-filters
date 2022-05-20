@@ -1,6 +1,6 @@
-from typing import NamedTuple, Callable, Any, Union, Tuple
 import itertools
 from functools import partial
+from typing import Any, Callable, NamedTuple, Tuple, Union
 
 import jax
 import jax.numpy as jnp

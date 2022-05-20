@@ -1,8 +1,7 @@
 import pytest
-
 import tornadox
 
-from pof.diffrax import solve_diffrax, get_ts_ys
+from pof.diffrax import get_ts_ys, solve_diffrax
 
 
 @pytest.fixture

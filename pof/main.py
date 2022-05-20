@@ -1,12 +1,11 @@
 import jax
 import jax.numpy as jnp
+import tornadox
 from jax.scipy.linalg import solve_triangular
 
-import tornadox
-
-from pof.utils import MVNSqrt, tria
-from pof.transitions import IWP, get_transition_model, projection_matrix
 from pof.observations import NonlinearModel, linearize
+from pof.transitions import IWP, get_transition_model, projection_matrix
+from pof.utils import MVNSqrt, tria
 
 
 def make_continuous_models(ivp, order):

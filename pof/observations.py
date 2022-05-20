@@ -1,8 +1,8 @@
 """
 Models in this section are all assumed to be noiseless!
 """
-from typing import NamedTuple, Callable
 from functools import partial
+from typing import Callable, NamedTuple
 
 import jax
 import jax.numpy as jnp

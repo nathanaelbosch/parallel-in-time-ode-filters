@@ -1,5 +1,5 @@
-import jax.numpy as jnp
 import diffrax
+import jax.numpy as jnp
 
 
 def solve_diffrax(
