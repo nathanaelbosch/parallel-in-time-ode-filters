@@ -1,8 +1,8 @@
-from .filtering import linear_noiseless_filtering
-from .smoothing import smoothing
+from .filter import linear_noiseless_filtering
+from .smoother import smoothing
 
 
-def filtsmooth(x0, linear_transitions, linear_observations):
+def linear_filtsmooth(x0, linear_transitions, linear_observations):
     out, nll, _ = linear_noiseless_filtering(
         x0, linear_transitions, linear_observations
     )

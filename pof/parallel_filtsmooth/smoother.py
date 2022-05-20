@@ -4,7 +4,6 @@ import jax
 import jax.numpy as jnp
 import jax.scipy.linalg as jlinalg
 
-from pof.ieks.operators import sqrt_smoothing_operator
 from pof.utils import MVNSqrt, objective_function_value, tria
 
 
@@ -31,9 +30,9 @@ def get_elements(transition_models, filtering_trajectory):
     vmapped_fn = jax.vmap(_sqrt_associative_params)
     gs, Es, Ls = vmapped_fn(transition_models, ms[:-1], Ps[:-1])
     g_T, E_T, L_T = ms[-1], jnp.zeros_like(Ps[-1]), Ps[-1]
-    gs = jnp.concatenate([gs[None, ...], g_T])
-    Es = jnp.concatenate([Es[None, ...], E_T])
-    Ls = jnp.concatenate([Ls[None, ...], L_T])
+    gs = jnp.concatenate([gs, g_T[None, ...]])
+    Es = jnp.concatenate([Es, E_T[None, ...]])
+    Ls = jnp.concatenate([Ls, L_T[None, ...]])
     return (gs, Es, Ls)
 
 
@@ -50,4 +49,17 @@ def _sqrt_associative_params(transition_model, m, chol_P):
 
     E = jlinalg.solve(Phi11.T, Phi21.T).T
     g = m - E @ (F @ m)
+    return g, E, D
+
+
+@jax.jit
+@jax.vmap
+def sqrt_smoothing_operator(elem1, elem2):
+    g1, E1, D1 = elem1
+    g2, E2, D2 = elem2
+
+    g = E2 @ g1 + g2
+    E = E2 @ E1
+    D = tria(jnp.concatenate([E2 @ D1, D2], axis=1))
+
     return g, E, D
