@@ -1,11 +1,11 @@
 import jax.numpy as jnp
-
 # import parsmooth
 import tornadox
 
+from .utils import AffineModel, MVNSqrt, linearize
+
 # from parsmooth.linearization import cubature, extended
 
-from .utils import AffineModel, MVNSqrt, linearize
 
 
 def make_filter_args(f, y0, T, order, dt):
