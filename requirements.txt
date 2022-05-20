@@ -1,0 +1,8 @@
+jax
+jaxlib
+numpy
+scipy
+tqdm
+tornadox
+diffrax
+matplotlib
