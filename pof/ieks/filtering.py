@@ -3,7 +3,6 @@ from typing import Callable, Optional, Union
 import jax
 import jax.numpy as jnp
 import jax.scipy.linalg as jlinalg
-from parsmooth._utils import none_or_concat
 
 from pof.ieks.operators import sqrt_filtering_operator
 from pof.utils import (

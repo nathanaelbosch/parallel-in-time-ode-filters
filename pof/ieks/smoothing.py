@@ -3,7 +3,6 @@ from typing import Callable, Optional, Union
 import jax
 import jax.numpy as jnp
 import jax.scipy.linalg as jlinalg
-from parsmooth._utils import none_or_concat
 
 from pof.ieks.operators import sqrt_smoothing_operator
 from pof.utils import MVNSqrt, objective_function_value, tria
@@ -32,7 +31,10 @@ def get_elements(transition_models, filtering_trajectory):
     vmapped_fn = jax.vmap(_sqrt_associative_params)
     gs, Es, Ls = vmapped_fn(transition_models, ms[:-1], Ps[:-1])
     g_T, E_T, L_T = ms[-1], jnp.zeros_like(Ps[-1]), Ps[-1]
-    return none_or_concat((gs, Es, Ls), (g_T, E_T, L_T), -1)
+    gs = jnp.concatenate([gs[None, ...], g_T])
+    Es = jnp.concatenate([Es[None, ...], E_T])
+    Ls = jnp.concatenate([Ls[None, ...], L_T])
+    return (gs, Es, Ls)
 
 
 @jax.jit

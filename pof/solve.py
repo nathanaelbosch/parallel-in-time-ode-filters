@@ -1,7 +1,9 @@
 import jax.numpy as jnp
-import parsmooth
+
+# import parsmooth
 import tornadox
-from parsmooth.linearization import cubature, extended
+
+# from parsmooth.linearization import cubature, extended
 
 from .utils import AffineModel, MVNSqrt, linearize
 
@@ -47,7 +49,7 @@ def solve_ek(
     tm, om, data, x0, ts, E0 = make_filter_args(f, y0, T, order, dt)
 
     kwargs = {}
-    method = parsmooth.filter_smoother if smooth else parsmooth.filter
+    # method = parsmooth.filter_smoother if smooth else parsmooth.filter
     states = method(
         observations=data,
         x0=x0,
@@ -122,11 +124,12 @@ def get_solver_iterator(
 
     # @jax.jit
     def refine(trajectory):
-        return parsmooth.filter_smoother(
-            **kwargs,
-            nominal_trajectory=trajectory,
-            parallel=parallel,
-        )
+        # out = parsmooth.filter_smoother(
+        #     **kwargs,
+        #     nominal_trajectory=trajectory,
+        #     parallel=parallel,
+        # )
+        return
 
     def project(trajectory):
         return jnp.dot(E0, trajectory.mean.T).T
