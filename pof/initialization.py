@@ -1,6 +1,5 @@
 import jax
 import jax.numpy as jnp
-
 import tornadox
 
 from pof.utils import MVNSqrt
