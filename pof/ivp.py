@@ -1,3 +1,4 @@
+""" Additional initial value problems of the same form as in tornadox """
 import jax
 import jax.numpy as jnp
 import tornadox
