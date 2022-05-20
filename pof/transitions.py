@@ -1,3 +1,8 @@
+"""
+All things transitions.
+
+This file contains everything that tornadox.iwp does, but in a more functional manner.
+"""
 from functools import partial
 from typing import NamedTuple
 
@@ -8,6 +13,8 @@ import scipy
 
 
 class TransitionModel(NamedTuple):
+    """Linear transition model in square-root form: x' | x ~ N(Fx, QL*QLt)"""
+
     F: jnp.ndarray
     QL: jnp.ndarray
 
