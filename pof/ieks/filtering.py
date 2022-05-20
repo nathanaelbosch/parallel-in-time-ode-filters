@@ -91,6 +91,7 @@ def _get_obs(transition_model, observation_model, m, cholP):
     obs_chol = tria(jnp.concatenate([H @ predicted_chol, cholR], axis=1))
     return obs_mean, obs_chol
 
+
 @jax.jit
 def _nll(transition_model, observation_model, m, cholP):
     obs_mean, obs_chol = _get_obs(transition_model, observation_model, m, cholP)

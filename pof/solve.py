@@ -1,21 +1,12 @@
-from functools import partial
-
-import jax
 import jax.numpy as jnp
-import matplotlib.pyplot as plt
 import parsmooth
 import tornadox
-import diffrax
 
 from .utils import MVNSqrt, AffineModel, linearize
 from parsmooth.linearization import extended, cubature
 
-# from parsmooth.parallel import ekf
-# from parsmooth.sequential._filtering import filtering as seq_ekf
 
-
-
-def make_filter_args(f, y0, T, order, dt, diffusion=0.1):
+def make_filter_args(f, y0, T, order, dt):
     d, q = y0.shape[0], order
     D = d * (q + 1)
 
@@ -35,7 +26,6 @@ def make_filter_args(f, y0, T, order, dt, diffusion=0.1):
 
     times = jnp.arange(0, T + dt, dt)
     data = jnp.zeros((len(times) - 1, d))
-    N = len(times)
 
     m0, P0 = tornadox.init.TaylorMode()(f=f, df=None, y0=y0, t0=0, num_derivatives=q)
     m0, P0 = jnp.concatenate(m0.T), jnp.kron(jnp.eye(d), P0)

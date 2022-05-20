@@ -66,6 +66,24 @@ def get_x0(ivp, num_derivatives):
     return x0
 
 
+def get_x0_2(ivp, num_derivatives):
+    d = ivp.y0.shape[0]
+
+    y0 = ivp.y0
+    dy0 = ivp.f(None, y0)
+
+    m0 = jnp.concatenate(
+        [y0[:, None], dy0[:, None], jnp.zeros((d, (num_derivatives - 1)))], axis=1
+    )
+    m0 = m0.reshape(1, -1)
+    P0 = jnp.eye(d * (num_derivatives + 1))
+    for j in range(num_derivatives):
+        P0 = P0.at[d * j, d * j].set(0)
+        P0 = P0.at[d * j + 1, d * j + 1].set(0)
+    x0 = MVNSqrt(m0, P0)
+    return x0
+
+
 @jax.jit
 def whiten(m, cholP):
     return solve_triangular(cholP.T, m)
