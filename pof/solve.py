@@ -8,7 +8,6 @@ from .utils import AffineModel, MVNSqrt, linearize
 # from parsmooth.linearization import cubature, extended
 
 
-
 def make_filter_args(f, y0, T, order, dt):
     d, q = y0.shape[0], order
     D = d * (q + 1)
