@@ -1,5 +1,4 @@
 jax
-jaxlib
 numpy
 scipy
 tqdm
