@@ -4,8 +4,8 @@ import jax
 import jax.numpy as jnp
 from jax.scipy.linalg import solve_triangular
 
-from pof.utils import MVNSqrt, mvn_loglikelihood, tria
 from pof.observations import linearize
+from pof.utils import MVNSqrt, mvn_loglikelihood, tria
 
 
 def extended_kalman_filter(

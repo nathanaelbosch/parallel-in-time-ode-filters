@@ -6,16 +6,11 @@ import pytest
 import pof
 from pof.initialization import get_initial_trajectory, get_x0
 from pof.ivp import logistic
-from pof.sequential_filtsmooth import (
-    extended_kalman_filter as sfilt,
-    smoothing as ssmooth,
-)
-from pof.parallel_filtsmooth import (
-    linear_noiseless_filtering as pfilt,
-    smoothing as psmooth,
-)
+from pof.parallel_filtsmooth import linear_noiseless_filtering as pfilt
+from pof.parallel_filtsmooth import smoothing as psmooth
+from pof.sequential_filtsmooth import extended_kalman_filter as sfilt
+from pof.sequential_filtsmooth import smoothing as ssmooth
 from pof.solver import make_continuous_models
-
 from tests.simple_linear_model import get_model, linearize_model
 
 

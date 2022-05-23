@@ -3,10 +3,10 @@ import jax.numpy as jnp
 import tornadox
 from jax.scipy.linalg import solve_triangular
 
+from pof.convenience import discretize_transitions, linearize_observation_model
 from pof.observations import NonlinearModel
 from pof.transitions import IWP, projection_matrix
 from pof.utils import MVNSqrt
-from pof.convenience import linearize_observation_model, discretize_transitions
 
 
 def get_model():
