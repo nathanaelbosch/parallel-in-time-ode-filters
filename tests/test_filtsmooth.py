@@ -27,11 +27,11 @@ def ivp():
 @pytest.mark.parametrize("order", [1, 3])
 @pytest.mark.parametrize("dt", [0.5])
 def test_sequential_eks(ivp, order, dt):
-    transition_model, observation_model = make_continuous_models(ivp, order)
+    transition_model, observation_model = make_continuous_models(ivp.f, ivp.y0, order)
     time_grid = jnp.arange(0, ivp.tmax + dt, dt)
     discrete_transition_models = pof.discretize_transitions(transition_model, time_grid)
 
-    x0 = get_x0(ivp, order)
+    x0 = get_x0(ivp.f, ivp.y0, order)
 
     out, nll = sfilt(x0, discrete_transition_models, observation_model)
 

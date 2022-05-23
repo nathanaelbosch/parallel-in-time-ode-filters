@@ -18,7 +18,7 @@ def ivp():
 @pytest.mark.parametrize("order", [1, 3])
 @pytest.mark.parametrize("dt", [0.5])
 def test_full_solve(ivp, order, dt):
-    transition_model, observation_model = make_continuous_models(ivp, order)
+    transition_model, observation_model = make_continuous_models(ivp.f, ivp.y0, order)
     time_grid = jnp.arange(0, ivp.tmax + dt, dt)
     discrete_transition_models = pof.discretize_transitions(transition_model, time_grid)
     initial_trajectory = get_initial_trajectory(ivp.y0, ivp.f, order, N=len(time_grid))
@@ -26,7 +26,7 @@ def test_full_solve(ivp, order, dt):
         observation_model, initial_trajectory[1:]
     )
 
-    x0 = get_x0(ivp, order)
+    x0 = get_x0(ivp.f, ivp.y0, order)
 
     out, nll, obj = linear_filtsmooth(
         x0, discrete_transition_models, linearized_observation_models
