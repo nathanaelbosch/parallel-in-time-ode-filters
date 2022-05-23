@@ -26,6 +26,7 @@ def smoothing(discrete_transition_models, filter_trajectory):
     return smoothed_states
 
 
+@jax.jit
 def _sqrt_smooth(F, cholQ, xf, xs):
     mf, cholPf = xf
     ms, cholPs = xs

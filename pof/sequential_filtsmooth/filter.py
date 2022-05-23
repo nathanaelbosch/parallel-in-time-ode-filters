@@ -31,6 +31,7 @@ def extended_kalman_filter(
     return MVNSqrt(means, cholcovs), ell
 
 
+@jax.jit
 def _sqrt_predict(F, cholQ, x):
     m, cholP = x
 
@@ -40,6 +41,7 @@ def _sqrt_predict(F, cholQ, x):
     return MVNSqrt(m, cholP)
 
 
+@jax.jit
 def _sqrt_update(H, cholR, c, x):
     m, cholP = x
     nx = m.shape[0]
