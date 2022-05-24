@@ -1,6 +1,7 @@
 import time
 from collections import defaultdict
 from functools import partial
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -19,12 +20,17 @@ from pof.parallel_filtsmooth import linear_filtsmooth
 from pof.sequential_filtsmooth import filtsmooth
 from pof.solver import make_continuous_models
 from pof.diffrax import solve_diffrax
-from pof.transitions import projection_matrix, IWP, get_transition_model
+from pof.transitions import (
+    projection_matrix,
+    IWP,
+    get_transition_model,
+    TransitionModel,
+    preconditioned_discretize,
+    nordsieck_preconditioner,
+)
 from pof.utils import MVNSqrt
-from pof.observations import linearize
+from pof.observations import linearize, NonlinearModel
 from pof.sequential_filtsmooth.filter import _sqrt_update
-
-ORDER = 2
 
 fs = linear_filtsmooth
 if jax.lib.xla_bridge.get_backend().platform == "gpu":
@@ -33,12 +39,29 @@ lom = jax.jit(linearize_observation_model, static_argnums=(0,))
 
 
 def set_up(ivp, dt, order):
-    iwp, om = make_continuous_models(ivp.f, ivp.y0, order)
-    E0 = projection_matrix(iwp, 0)
     ts = jnp.arange(ivp.t0, ivp.tmax + dt, dt)
-    dtm = discretize_transitions(iwp, ts)
+
+    iwp = IWP(num_derivatives=order, wiener_process_dimension=ivp.y0.shape[0])
+    dtm = jax.vmap(lambda _: TransitionModel(*preconditioned_discretize(iwp)))(ts[1:])
+    P, PI = nordsieck_preconditioner(iwp, dt)
+
+    E0, E1 = projection_matrix(iwp, 0), projection_matrix(iwp, 1)
+    E0, E1 = E0 @ P, E1 @ P
+    om = NonlinearModel(lambda x: E1 @ x - ivp.f(None, E0 @ x))
+
     x0 = get_x0(ivp.f, ivp.y0, order)
-    return {"ts": ts, "dtm": dtm, "om": om, "x0": x0, "E0": E0, "ivp": ivp}
+    x0 = jax.tree_map(lambda x: PI @ x, x0)
+
+    return {
+        "ts": ts,
+        "dtm": dtm,
+        "om": om,
+        "x0": x0,
+        "E0": E0,
+        "ivp": ivp,
+        "PI": PI,
+        "order": order,
+    }
 
 
 def eks_step(dtm, om, x0, traj):
@@ -47,6 +70,7 @@ def eks_step(dtm, om, x0, traj):
 
 
 def ieks_iterator(dtm, om, x0, init_traj):
+
     nll_old, obj_old = 0, 0
     out, nll, obj = eks_step(dtm, om, x0, init_traj)
     yield out, nll, obj
@@ -60,10 +84,10 @@ def ieks_iterator(dtm, om, x0, init_traj):
         yield out, nll, obj
 
 
-def evaluate(init_traj, setup, sol_true, maxiter=100):
+def evaluate(init_traj, setup, ys_true, maxiter=100):
     results = defaultdict(lambda: [])
 
-    mse = get_mse(init_traj, setup["E0"], setup["ts"][1:], sol_true)
+    mse = get_mse(init_traj, setup["E0"], ys_true[1:])
     results["nll"].append(np.inf)
     results["obj"].append(np.inf)
     results["mse"].append(mse.item())
@@ -71,7 +95,7 @@ def evaluate(init_traj, setup, sol_true, maxiter=100):
     ieks_iter = ieks_iterator(setup["dtm"], setup["om"], setup["x0"], init_traj)
     for (k, (out, nll, obj)) in enumerate(ieks_iter):
         print(k)
-        mse = get_mse(out.mean, setup["E0"], setup["ts"], sol_true)
+        mse = get_mse(out.mean, setup["E0"], ys_true)
         results["nll"].append(nll.item())
         results["obj"].append(obj.item())
         results["mse"].append(mse.item())
@@ -80,18 +104,30 @@ def evaluate(init_traj, setup, sol_true, maxiter=100):
     return results, k
 
 
-def get_mse(out, E0, ts, sol_true):
+@jax.jit
+def get_mse(out, E0, ys_true):
     ys = jnp.dot(E0, out.T).T
-    es = ys - jax.vmap(sol_true.evaluate)(ts)
+    es = ys - ys_true
     return jax.vmap(lambda e: jnp.sqrt(jnp.mean(e**2)), in_axes=0)(es).mean()
 
 
 ########################################################################################
 # Init options
 ########################################################################################
+def precondition_traj(f):
+    def _f(setup, *args, **kwargs):
+        out = f(setup, *args, **kwargs)
+        return jnp.dot(setup["PI"], out.T).T
+
+    return _f
+
+
+@precondition_traj
 def constant_init(setup):
     ivp = setup["ivp"]
-    return get_initial_trajectory(ivp.y0, ivp.f, order=ORDER, N=len(setup["ts"]) - 1)
+    return get_initial_trajectory(
+        ivp.y0, ivp.f, order=setup["order"], N=len(setup["ts"]) - 1
+    )
 
 
 def _prior_extrapolation(x0, iwp, ts):
@@ -102,17 +138,19 @@ def _prior_extrapolation(x0, iwp, ts):
     return jax.vmap(predict)(ts)
 
 
+@precondition_traj
 def prior_init(setup):
     ivp = setup["ivp"]
     assert ivp.t0 == 0
-    iwp = IWP(num_derivatives=ORDER, wiener_process_dimension=ivp.y0.shape[0])
+    iwp = IWP(num_derivatives=setup["order"], wiener_process_dimension=ivp.y0.shape[0])
     return _prior_extrapolation(setup["x0"], iwp, setup["ts"][1:]).mean
 
 
+@precondition_traj
 def updated_prior_init(setup):
     ivp = setup["ivp"]
     assert ivp.t0 == 0
-    iwp = IWP(num_derivatives=ORDER, wiener_process_dimension=ivp.y0.shape[0])
+    iwp = IWP(num_derivatives=setup["order"], wiener_process_dimension=ivp.y0.shape[0])
     states = _prior_extrapolation(setup["x0"], iwp, setup["ts"][1:])
 
     om = setup["om"]
@@ -125,10 +163,11 @@ def updated_prior_init(setup):
     return states.mean
 
 
+@precondition_traj
 def coarse_solver_init(setup, dt):
     sol_init = solve_diffrax(ivp, dt=dt)
     ys = jax.vmap(sol_init.evaluate)(setup["ts"][1:])
-    return get_initial_trajectory(ys, ivp.f, order=ORDER)
+    return get_initial_trajectory(ys, ivp.f, order=setup["order"])
 
 
 INITS = (
@@ -148,21 +187,25 @@ INIT_NAMES = [i[0] for i in INITS]
 # Evaluation
 ########################################################################################
 # Setup
-ivp, probname = lotkavolterra(), "lotkavolterra"
-dts = ((1e-1, "1e-1"), (1e-2, "1e-2"), (1e-3, "1e-3"), (1e-4, "1e-4"))
-# ivp, probname = logistic(), "logistic"
-# dts = ((1e-0, "1e-0"), (1e-1, "1e-1"), (1e-2, "1e-2"), (1e-3, "1e-3"))
+ORDER = 2
+
+ivp, probname = logistic(), "logistic"
+dts = ((1e-0, "1e-0"), (1e-1, "1e-1"), (1e-2, "1e-2"), (1e-3, "1e-3"))
+
+# ivp, probname = lotkavolterra(), "lotkavolterra"
+# dts = ((1e-1, "1e-1"), (1e-2, "1e-2"), (1e-3, "1e-3"), (1e-4, "1e-4"))
 
 sol_true = solve_diffrax(ivp, atol=1e-20, rtol=1e-20)
 for dt, dt_str in dts:
     setup = set_up(ivp, dt, order=ORDER)
+    ys_true = jax.vmap(sol_true.evaluate)(setup["ts"])
 
     # Eval each INIT
     dfs = {}
     for n, init in INITS:
         print(f"initialization: {n}")
         traj = init(setup)
-        res, k = evaluate(traj, setup, sol_true)
+        res, k = evaluate(traj, setup, ys_true)
         df = pd.DataFrame(res)
         dfs[n] = df
 
@@ -177,4 +220,6 @@ for dt, dt_str in dts:
             df, add_suffix(dfs[n], n), "outer", left_index=True, right_index=True
         )
         # Save
-    df.to_csv(f"experiments/2_init_comparison/{probname}_{dt_str}_dev.csv")
+    path = Path("experiments/2_init_comparison/")
+    filename = f"prob={probname}_dt={dt_str}_order={ORDER}_dev.csv"
+    df.to_csv(path / filename)

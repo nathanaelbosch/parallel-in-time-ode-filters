@@ -37,32 +37,34 @@ cycle = cycler("color", _colors) + cycler("marker", _markers)
 toplot = "mse"
 # toplot="nll"
 # toplot = "obj"
+order = 2
 
 
 folder = Path("experiments/2_init_comparison/")
-# ivp, dts = "logistic", ("1e-0", "1e-1", "1e-2", "1e-3")
-ivp, dts = "lotkavolterra", ("1e-1", "1e-2", "1e-3", "1e-4")
+for ivp, dts in (
+    ("logistic", ("1e-0", "1e-1", "1e-2", "1e-3")),
+    ("lotkavolterra", ("1e-1", "1e-2", "1e-3", "1e-4")),
+):
 
-fig, axes = plt.subplots(1, len(dts), sharey=True, sharex=True)
+    fig, axes = plt.subplots(1, len(dts), sharey=True, sharex=True)
 
-for i, (ax, dt) in enumerate(zip(axes, dts)):
-    filename = f"{ivp}_{dt}_dev.csv"
-    df = pd.read_csv(folder / filename, index_col=0)
+    for i, (ax, dt) in enumerate(zip(axes, dts)):
+        filename = f"prob={ivp}_dt={dt}_order={order}_dev.csv"
+        df = pd.read_csv(folder / filename, index_col=0)
 
-    ax.set_prop_cycle(cycle)
-    for j in range(len(names)):
-        key, label = names[j]
-        ax.plot(df[f"{toplot}_{key}"], label=label)
-        # ax.set_xscale("log")
-    ax.set_yscale("log")
+        ax.set_prop_cycle(cycle)
+        for j in range(len(names)):
+            key, label = names[j]
+            ax.plot(df[f"{toplot}_{key}"], label=label)
+            # ax.set_xscale("log")
+        ax.set_yscale("log")
 
-    ax.set_title(rf"$\bf {chr(97+i)})$ " + rf"dt={dt}", loc="left")
+        ax.set_title(rf"$\bf {chr(97+i)})$ " + rf"dt={dt}", loc="left")
 
+    # for ax in axes:
+    #     ax.set_xlabel("Number of iterations")
+    fig.supxlabel("Number of iterations")
+    fig.supylabel("Mean squared error")
+    axes[0].legend()
 
-# for ax in axes:
-#     ax.set_xlabel("Number of iterations")
-fig.supxlabel("Number of iterations")
-fig.supylabel("Mean squared error")
-axes[0].legend()
-
-fig.savefig(folder / f"{ivp}.pdf")
+    fig.savefig(folder / f"{ivp}.pdf")
