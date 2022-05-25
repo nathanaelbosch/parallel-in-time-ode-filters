@@ -61,6 +61,9 @@ for ivp, dts in (
 
         ax.set_title(rf"$\bf {chr(97+i)})$ " + rf"dt={dt}", loc="left")
 
+        best = df["mse_coarse_solver_2p-4"].dropna()
+        minval = best[best.last_valid_index()]
+        ax.axhline(minval, color="black", linestyle="dashed", zorder=-1)
     # for ax in axes:
     #     ax.set_xlabel("Number of iterations")
     fig.supxlabel("Number of iterations")
