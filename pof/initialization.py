@@ -15,7 +15,7 @@ def taylor_mode_init(f, y0, num_derivatives):
     return x0
 
 
-def uncertain_init(f, y0, num_derivatives, var=1):
+def uncertain_init(f, y0, num_derivatives, var=1.0):
     d = y0.shape[0]
     q = num_derivatives
 
