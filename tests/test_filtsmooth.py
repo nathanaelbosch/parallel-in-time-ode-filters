@@ -44,7 +44,7 @@ def test_equality():
     assert out_ekf.chol.shape == out_eks.chol.shape
 
     lin_obsmod = linearize_model(obsmod, x0, disc_transmod.F.shape[0])
-    out_pkf, _, _ = pfilt(x0, disc_transmod, lin_obsmod)
+    out_pkf, _, _, _ = pfilt(x0, disc_transmod, lin_obsmod)
     out_pks, _ = psmooth(disc_transmod, out_pkf)
     assert out_pkf.mean.shape == out_pks.mean.shape
     assert out_pkf.chol.shape == out_pks.chol.shape

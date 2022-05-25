@@ -28,6 +28,6 @@ def test_full_solve(ivp, order, dt):
 
     x0 = taylor_mode_init(ivp.f, ivp.y0, order)
 
-    out, nll, obj = linear_filtsmooth(
+    out, nll, obj, ssq = linear_filtsmooth(
         x0, discrete_transition_models, linearized_observation_models
     )

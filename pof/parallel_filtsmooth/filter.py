@@ -4,6 +4,7 @@ import jax
 import jax.numpy as jnp
 import jax.scipy.linalg as jlinalg
 
+from pof.calibration import whiten
 from pof.utils import (
     MVNSqrt,
     append_zeros_along_new_axis,
@@ -25,6 +26,7 @@ def linear_noiseless_filtering(
     Filtering is done in parallel via `jax.lax.associative_scan`.
     """
     N = observation_models.H.shape[0]
+    d = observation_models.b.shape[1]
     xs = jax.tree_map(lambda z: append_zeros_along_new_axis(z, N - 1), x0)
 
     elems = jax.vmap(_get_element)(transition_models, observation_models, xs)
@@ -34,13 +36,19 @@ def linear_noiseless_filtering(
     means = jnp.concatenate([x0.mean[None, ...], means])
     cholcovs = jnp.concatenate([x0.chol[None, ...], cholcovs])
 
-    nlls = jax.vmap(_nll)(
+    obs_mean, obs_chol = jax.vmap(_get_obs)(
         transition_models, observation_models, means[:-1], cholcovs[:-1]
     )
+    ress = jax.vmap(whiten)(obs_mean, obs_chol)
+    sigma_squared = jax.vmap(jnp.dot)(ress, ress).sum() / N / d
 
-    obj = jax.vmap(objective_function_value)(means[:-1], means[1:], transition_models)
+    nll = -jax.vmap(mvn_loglikelihood)(obs_mean, obs_chol).sum()
 
-    return MVNSqrt(means, cholcovs), jnp.sum(nlls), jnp.sum(obj)
+    obj = jax.vmap(objective_function_value)(
+        means[:-1], means[1:], transition_models
+    ).sum()
+
+    return MVNSqrt(means, cholcovs), nll, obj, sigma_squared
 
 
 @jax.jit
@@ -87,12 +95,6 @@ def _get_obs(transition_model, observation_model, m, cholP):
     obs_mean = H @ predicted_mean + c
     obs_chol = tria(jnp.concatenate([H @ predicted_chol, cholR], axis=1))
     return obs_mean, obs_chol
-
-
-@jax.jit
-def _nll(transition_model, observation_model, m, cholP):
-    obs_mean, obs_chol = _get_obs(transition_model, observation_model, m, cholP)
-    return -mvn_loglikelihood(obs_mean, obs_chol)
 
 
 @jax.jit
