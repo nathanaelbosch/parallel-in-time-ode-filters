@@ -24,6 +24,6 @@ def get_model():
 
 
 def linearize_model(obsmod, x0, N):
-    traj = jnp.repeat(x0.mean.reshape(1, -1), N, axis=0)
+    traj = jax.tree_map(lambda l: jnp.repeat(l[None, ...], N, axis=0), x0)
     lin_obsmod = linearize_observation_model(obsmod, traj)
     return lin_obsmod

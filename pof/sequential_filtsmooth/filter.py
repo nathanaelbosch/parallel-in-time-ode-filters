@@ -21,7 +21,7 @@ def extended_kalman_filter(
         x = predict(F, QL, x)
 
         update_ref = x
-        H, b, R = linearize(continuous_observation_model, x.mean)
+        H, b, R = linearize(continuous_observation_model, x)
         x, ell_inc = update(H, R, b, x)
         return (x, ell + ell_inc), x
 

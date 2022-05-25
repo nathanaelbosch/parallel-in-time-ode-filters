@@ -23,7 +23,7 @@ def test_full_solve(ivp, order, dt):
     discrete_transition_models = pof.discretize_transitions(transition_model, time_grid)
     initial_trajectory = get_initial_trajectory(ivp.y0, ivp.f, order, N=len(time_grid))
     linearized_observation_models = pof.linearize_observation_model(
-        observation_model, initial_trajectory[1:]
+        observation_model, jax.tree_map(lambda l: l[1:], initial_trajectory)
     )
 
     x0 = taylor_mode_init(ivp.f, ivp.y0, order)

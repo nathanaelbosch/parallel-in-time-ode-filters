@@ -7,6 +7,7 @@ from typing import Callable, NamedTuple
 import jax
 import jax.numpy as jnp
 
+from pof.transitions import IWP, projection_matrix
 from pof.utils import MVNSqrt, tria
 
 
@@ -32,10 +33,11 @@ class AffineModel(NamedTuple):
 
 
 @partial(jax.jit, static_argnums=(0,))
-def linearize(f: NonlinearModel, x: jnp.ndarray):
-    res, F_x = f(x), jax.jacfwd(f, 0)(x)
+def linearize(f: NonlinearModel, x: MVNSqrt):
+    m = x.mean
+    res, F_x = f(m), jax.jacfwd(f, 0)(m)
     cholR = jnp.zeros((res.shape[0], res.shape[0]))
-    return AffineModel(F_x, res - F_x @ x, cholR)
+    return AffineModel(F_x, res - F_x @ m, cholR)
 
 
 @partial(jax.jit, static_argnums=(0,))

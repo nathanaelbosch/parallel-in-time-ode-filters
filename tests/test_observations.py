@@ -2,6 +2,7 @@ import jax.numpy as jnp
 import pytest
 
 from pof.observations import AffineModel, NonlinearModel, linearize
+from pof.utils import MVNSqrt
 
 
 @pytest.fixture
@@ -20,7 +21,7 @@ def test_nonlinearmodel(f, nlm):
 
 
 def test_linearize(nlm):
-    x = jnp.array([1.0])
+    x = MVNSqrt(jnp.array([1.0]), jnp.zeros((1, 1)))
     linearized_model = linearize(nlm, x)
     H, b, cholR = linearized_model
     assert isinstance(linearized_model, AffineModel)
@@ -29,4 +30,4 @@ def test_linearize(nlm):
     assert cholR.shape == (1, 1)
     assert all(cholR == 0)
 
-    assert H @ x + b == nlm(x)
+    assert H @ x.mean + b == nlm(x.mean)

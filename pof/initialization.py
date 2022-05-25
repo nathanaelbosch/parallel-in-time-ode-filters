@@ -57,4 +57,6 @@ def get_initial_trajectory(y0, f, order, N=None, with_dy=True):
             [y0[:, :, None], dy0[:, :, None], jnp.zeros((N, d, (order - 1)))], axis=2
         )
         traj = traj.reshape(N, -1)
-    return traj
+    _, D = traj.shape
+    cholcovs = jnp.zeros((N, D, D))
+    return MVNSqrt(traj, cholcovs)
