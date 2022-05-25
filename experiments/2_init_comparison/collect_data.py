@@ -9,7 +9,7 @@ import pandas as pd
 
 from pof.convenience import linearize_observation_model
 from pof.diffrax import solve_diffrax
-from pof.initialization import get_initial_trajectory, taylor_mode_init
+from pof.initialization import get_initial_trajectory, taylor_mode_init, uncertain_init
 from pof.ivp import logistic, lotkavolterra
 from pof.observations import NonlinearModel, linearize
 from pof.parallel_filtsmooth import linear_filtsmooth

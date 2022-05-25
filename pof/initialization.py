@@ -15,22 +15,20 @@ def taylor_mode_init(f, y0, num_derivatives):
     return x0
 
 
-def __taylor_mode_init_2(f, y0, num_derivatives):
-    """Goal here was just to initialize NOT with taylor mode"""
+def uncertain_init(f, y0, num_derivatives, var=1):
     d = y0.shape[0]
+    q = num_derivatives
 
-    y0 = y0
-    dy0 = f(None, y0)
+    y0 = y0.reshape(-1, 1)
+    dy0 = f(None, y0).reshape(-1, 1)
 
-    m0 = jnp.concatenate(
-        [y0[:, None], dy0[:, None], jnp.zeros((d, (num_derivatives - 1)))], axis=1
-    )
-    m0 = m0.reshape(1, -1)
-    P0 = jnp.eye(d * (num_derivatives + 1))
-    for j in range(num_derivatives):
-        P0 = P0.at[d * j, d * j].set(0)
-        P0 = P0.at[d * j + 1, d * j + 1].set(0)
-    x0 = MVNSqrt(m0, P0)
+    m0 = jnp.concatenate([y0, dy0, jnp.zeros((d, (q - 1)))], axis=1)
+    m0 = m0.reshape(-1)
+    P0 = jnp.eye(d * (q + 1)) * var
+    for j in range(d):
+        P0 = P0.at[(q + 1) * j, (q + 1) * j].set(0)
+        P0 = P0.at[(q + 1) * j + 1, (q + 1) * j + 1].set(0)
+    x0 = MVNSqrt(m0, jnp.sqrt(P0))
     return x0
 
 
