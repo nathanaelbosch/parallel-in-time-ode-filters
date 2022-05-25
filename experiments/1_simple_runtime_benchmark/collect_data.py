@@ -1,16 +1,14 @@
 import time
 from collections import defaultdict
-from functools import partial
 
-import numpy as np
-import pandas as pd
 import diffrax
 import jax
 import jax.numpy as jnp
-from scipy.integrate import solve_ivp
+import numpy as np
+import pandas as pd
 import probnum
+from scipy.integrate import solve_ivp
 
-import pof
 from pof.convenience import discretize_transitions, linearize_observation_model
 from pof.initialization import get_initial_trajectory, get_x0
 from pof.ivp import logistic, lotkavolterra

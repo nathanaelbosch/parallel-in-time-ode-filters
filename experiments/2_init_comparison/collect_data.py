@@ -1,36 +1,28 @@
-import time
 from collections import defaultdict
-from functools import partial
 from pathlib import Path
 
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
 import diffrax
 import jax
 import jax.numpy as jnp
-from scipy.integrate import solve_ivp
-import probnum
+import numpy as np
+import pandas as pd
 
-import pof
-from pof.convenience import discretize_transitions, linearize_observation_model
+from pof.convenience import linearize_observation_model
+from pof.diffrax import solve_diffrax
 from pof.initialization import get_initial_trajectory, get_x0
 from pof.ivp import logistic, lotkavolterra
+from pof.observations import NonlinearModel, linearize
 from pof.parallel_filtsmooth import linear_filtsmooth
-from pof.sequential_filtsmooth import filtsmooth
-from pof.solver import make_continuous_models
-from pof.diffrax import solve_diffrax
+from pof.sequential_filtsmooth.filter import _sqrt_update
 from pof.transitions import (
-    projection_matrix,
     IWP,
-    get_transition_model,
     TransitionModel,
-    preconditioned_discretize,
+    get_transition_model,
     nordsieck_preconditioner,
+    preconditioned_discretize,
+    projection_matrix,
 )
 from pof.utils import MVNSqrt
-from pof.observations import linearize, NonlinearModel
-from pof.sequential_filtsmooth.filter import _sqrt_update
 
 fs = linear_filtsmooth
 if jax.lib.xla_bridge.get_backend().platform == "gpu":
