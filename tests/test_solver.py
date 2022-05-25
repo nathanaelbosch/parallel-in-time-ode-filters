@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import pof
-from pof.initialization import get_initial_trajectory, get_x0
+from pof.initialization import get_initial_trajectory, taylor_mode_init
 from pof.ivp import logistic
 from pof.parallel_filtsmooth import linear_filtsmooth
 from pof.solver import make_continuous_models
@@ -26,7 +26,7 @@ def test_full_solve(ivp, order, dt):
         observation_model, initial_trajectory[1:]
     )
 
-    x0 = get_x0(ivp.f, ivp.y0, order)
+    x0 = taylor_mode_init(ivp.f, ivp.y0, order)
 
     out, nll, obj = linear_filtsmooth(
         x0, discrete_transition_models, linearized_observation_models

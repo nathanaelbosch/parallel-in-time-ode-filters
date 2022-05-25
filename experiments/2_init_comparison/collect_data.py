@@ -9,7 +9,7 @@ import pandas as pd
 
 from pof.convenience import linearize_observation_model
 from pof.diffrax import solve_diffrax
-from pof.initialization import get_initial_trajectory, get_x0
+from pof.initialization import get_initial_trajectory, taylor_mode_init
 from pof.ivp import logistic, lotkavolterra
 from pof.observations import NonlinearModel, linearize
 from pof.parallel_filtsmooth import linear_filtsmooth
@@ -41,7 +41,7 @@ def set_up(ivp, dt, order):
     E0, E1 = E0 @ P, E1 @ P
     om = NonlinearModel(lambda x: E1 @ x - ivp.f(None, E0 @ x))
 
-    x0 = get_x0(ivp.f, ivp.y0, order)
+    x0 = taylor_mode_init(ivp.f, ivp.y0, order)
     x0 = jax.tree_map(lambda x: PI @ x, x0)
 
     return {

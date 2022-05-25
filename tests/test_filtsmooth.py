@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import pof
-from pof.initialization import get_initial_trajectory, get_x0
+from pof.initialization import get_initial_trajectory, taylor_mode_init
 from pof.ivp import logistic
 from pof.parallel_filtsmooth import linear_noiseless_filtering as pfilt
 from pof.parallel_filtsmooth import smoothing as psmooth
@@ -26,7 +26,7 @@ def test_sequential_eks(ivp, order, dt):
     time_grid = jnp.arange(0, ivp.tmax + dt, dt)
     discrete_transition_models = pof.discretize_transitions(transition_model, time_grid)
 
-    x0 = get_x0(ivp.f, ivp.y0, order)
+    x0 = taylor_mode_init(ivp.f, ivp.y0, order)
 
     out, nll = sfilt(x0, discrete_transition_models, observation_model)
 

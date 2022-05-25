@@ -5,7 +5,7 @@ import tornadox
 from pof.utils import MVNSqrt
 
 
-def get_x0(f, y0, num_derivatives):
+def taylor_mode_init(f, y0, num_derivatives):
     d = y0.shape[0]
     m0, P0 = tornadox.init.TaylorMode()(
         f=f, df=None, y0=y0, t0=0, num_derivatives=num_derivatives
@@ -15,7 +15,7 @@ def get_x0(f, y0, num_derivatives):
     return x0
 
 
-def __get_x0_2(f, y0, num_derivatives):
+def __taylor_mode_init_2(f, y0, num_derivatives):
     """Goal here was just to initialize NOT with taylor mode"""
     d = y0.shape[0]
 

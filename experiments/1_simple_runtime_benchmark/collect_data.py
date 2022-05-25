@@ -10,7 +10,7 @@ import probnum
 from scipy.integrate import solve_ivp
 
 from pof.convenience import discretize_transitions, linearize_observation_model
-from pof.initialization import get_initial_trajectory, get_x0
+from pof.initialization import get_initial_trajectory, taylor_mode_init
 from pof.ivp import logistic, lotkavolterra
 from pof.parallel_filtsmooth import linear_filtsmooth
 from pof.sequential_filtsmooth import filtsmooth
@@ -20,7 +20,7 @@ from pof.solver import make_continuous_models
 def parallel_eks(f, y0, ts, order):
     iwp, om = make_continuous_models(f, y0, order)
     dtm = discretize_transitions(iwp, ts)
-    x0 = get_x0(f, y0, order)
+    x0 = taylor_mode_init(f, y0, order)
     traj = get_initial_trajectory(y0, f, order, N=ts.shape[0])
     dom = linearize_observation_model(om, traj[1:])
     out, _, _ = linear_filtsmooth(x0, dtm, dom)
@@ -30,7 +30,7 @@ def parallel_eks(f, y0, ts, order):
 def sequential_eks(f, y0, ts, order):
     iwp, om = make_continuous_models(f, y0, order)
     dtm = discretize_transitions(iwp, ts)
-    x0 = get_x0(f, y0, order)
+    x0 = taylor_mode_init(f, y0, order)
     traj = get_initial_trajectory(y0, f, order, N=ts.shape[0])
     dom = linearize_observation_model(om, traj[1:])
     out, _ = filtsmooth(x0, dtm, om)
