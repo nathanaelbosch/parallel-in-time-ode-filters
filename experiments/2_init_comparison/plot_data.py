@@ -16,6 +16,7 @@ plt.rcParams.update(
         # "lines.markersize": 4,
         "axes.grid": True,
         "axes.grid.which": "both",
+        "figure.titlesize": plt.rcParams["axes.labelsize"],
     }
 )
 
@@ -24,7 +25,7 @@ names = (
     ("constant", "Constant"),
     ("prior", "Prior"),
     ("updated_prior", "Prior+Update"),
-    ("coarse_solver_2p-0", "RK (dt=$2^{0}$)"),
+    # ("coarse_solver_2p-0", "RK (dt=$2^{0}$)"),
     ("coarse_solver_2p-1", "RK (dt=$2^{-1}$)"),
     ("coarse_solver_2p-2", "RK (dt=$2^{-2}$)"),
     ("coarse_solver_2p-3", "RK (dt=$2^{-3}$)"),
@@ -35,27 +36,51 @@ _markers = ["p", "P", "X", "d", "s", "*", "o", "v"]
 cycle = cycler("color", _colors) + cycler("marker", _markers)
 
 toplot = "mse"
-# toplot="nll"
+# toplot = "nll"
 # toplot = "obj"
-order = 2
+order = 4
 
 
 folder = Path("experiments/2_init_comparison/")
 for ivp, dts in (
-    ("logistic", ("1e-0", "1e-1", "1e-2", "1e-3")),
-    ("lotkavolterra", ("1e-1", "1e-2", "1e-3", "1e-4")),
+    # (
+    #     "logistic",
+    #     (
+    #         "1e-0",
+    #         "1e-1",
+    #         "1e-2",
+    #         # "1e-3",
+    #     ),
+    # ),
+    (
+        "lotkavolterra",
+        (
+            "1e-0",
+            "1e-1",
+            "1e-2",
+            "1e-3",
+            # "1e-4",
+        ),
+    ),
 ):
 
-    fig, axes = plt.subplots(1, len(dts), sharey=True, sharex=True)
+    fig, axes = plt.subplots(
+        1,
+        len(dts),
+        sharey=True,
+        # sharex=True,
+    )
 
     for i, (ax, dt) in enumerate(zip(axes, dts)):
         filename = f"prob={ivp}_dt={dt}_order={order}_dev.csv"
-        df = pd.read_csv(folder / filename, index_col=0)
+        df = pd.read_csv(folder / "data" / filename, index_col=0)
 
         ax.set_prop_cycle(cycle)
         for j in range(len(names)):
             key, label = names[j]
-            ax.plot(df[f"{toplot}_{key}"], label=label)
+            ms = 8 - 2 * j if j < 3 else 5
+            # print(df[f"{toplot}_{key}"].dropna())
+            ax.plot(df[f"{toplot}_{key}"], label=label, markersize=ms)
             # ax.set_xscale("log")
         ax.set_yscale("log")
 
@@ -64,10 +89,27 @@ for ivp, dts in (
         best = df["mse_coarse_solver_2p-4"].dropna()
         minval = best[best.last_valid_index()]
         ax.axhline(minval, color="black", linestyle="dashed", zorder=-1)
+        if ivp == "logistic":
+            # ax.set_xlim(-3, 25)
+            pass
+        else:
+            if order == 5:
+                ax.set_ylim(1e-20, 1e16)
+            # if order == 4:
+            #     ax.set_ylim(1e-20, 1e15)
+
+            # ax.set_xlim(-3, 100)
+            pass
     # for ax in axes:
     #     ax.set_xlabel("Number of iterations")
     fig.supxlabel("Number of iterations")
     fig.supylabel("Mean squared error")
     axes[0].legend()
 
-    fig.savefig(folder / f"{ivp}.pdf")
+    fig.suptitle(
+        f"Lotka-Volterra (order={order}; uncertainty-aware linearization hybrid)"
+    )
+
+    _p = folder / f"{ivp}_order{order}_uncertainlin_hybrid.pdf"
+    fig.savefig(_p)
+    print(f"saved figure to {_p}")
