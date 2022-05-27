@@ -7,6 +7,7 @@ from typing import Callable, NamedTuple
 import jax
 import jax.numpy as jnp
 
+from pof.transitions import IWP, projection_matrix
 from pof.utils import MVNSqrt, tria
 
 
@@ -46,3 +47,15 @@ def uncertain_linearize(f: NonlinearModel, x: MVNSqrt):
     res, F_m = f(m), jax.jacfwd(f, 0)(m)
     cholR = tria(F_m @ CL)
     return AffineModel(F_m, res - F_m @ m, cholR)
+
+
+@partial(jax.jit, static_argnums=(0,))
+def linearize_ek0(f: NonlinearModel, x: MVNSqrt):
+    m = x.mean
+    res = f(m)
+    d = res.shape[0]
+    q = (m.shape[0] // d) - 1
+    _iwp = IWP(wiener_process_dimension=d, num_derivatives=q)
+    F_x = E1 = projection_matrix(_iwp, 1)
+    cholR = jnp.zeros((res.shape[0], res.shape[0]))
+    return AffineModel(F_x, res - F_x @ m, cholR)
