@@ -5,6 +5,7 @@ import jax.numpy as jnp
 import jax.scipy.linalg as jlinalg
 
 from pof.calibration import whiten
+from pof.observations import AffineModel
 from pof.utils import (
     MVNSqrt,
     append_zeros_along_new_axis,
@@ -36,19 +37,14 @@ def linear_noiseless_filtering(
     means = jnp.concatenate([x0.mean[None, ...], means])
     cholcovs = jnp.concatenate([x0.chol[None, ...], cholcovs])
 
-    obs_mean, obs_chol = jax.vmap(_get_obs)(
-        transition_models, observation_models, means[:-1], cholcovs[:-1]
-    )
-    ress = jax.vmap(whiten)(obs_mean, obs_chol)
-    sigma_squared = jax.vmap(jnp.dot)(ress, ress).sum() / N / d
-
-    nll = -jax.vmap(mvn_loglikelihood)(obs_mean, obs_chol).sum()
+    ssq = _get_sigma_squared(transition_models, observation_models, means, cholcovs)
+    nll = _get_nll(transition_models, observation_models, means, cholcovs)
 
     obj = jax.vmap(objective_function_value)(
         means[:-1], means[1:], transition_models
     ).sum()
 
-    return MVNSqrt(means, cholcovs), nll, obj, sigma_squared
+    return MVNSqrt(means, cholcovs), nll, obj, ssq
 
 
 @jax.jit
@@ -95,6 +91,28 @@ def _get_obs(transition_model, observation_model, m, cholP):
     obs_mean = H @ predicted_mean + c
     obs_chol = tria(jnp.concatenate([H @ predicted_chol, cholR], axis=1))
     return obs_mean, obs_chol
+
+
+@jax.jit
+def _get_nll(transition_models, observation_models, means, cholcovs):
+    obs_mean, obs_chol = jax.vmap(_get_obs)(
+        transition_models, observation_models, means[:-1], cholcovs[:-1]
+    )
+    nll = -jax.vmap(mvn_loglikelihood)(obs_mean, obs_chol).sum()
+    return nll
+
+
+@jax.jit
+def _get_sigma_squared(transition_models, observation_models, means, cholcovs):
+    om = observation_models
+    N, d = om.b.shape
+    # noiseless_om = AffineModel(om.H, om.b, jnp.zeros_like(om.cholR))
+    obs_mean, obs_chol = jax.vmap(_get_obs)(
+        transition_models, om, means[:-1], cholcovs[:-1]
+    )
+    ress = jax.vmap(whiten)(obs_mean, obs_chol)
+    sigma_squared = jax.vmap(jnp.dot)(ress, ress).sum() / N / d
+    return sigma_squared
 
 
 @jax.jit
