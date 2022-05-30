@@ -59,3 +59,25 @@ def linearize_ek0(f: NonlinearModel, x: MVNSqrt):
     F_x = E1 = projection_matrix(_iwp, 1)
     cholR = jnp.zeros((res.shape[0], res.shape[0]))
     return AffineModel(F_x, res - F_x @ m, cholR)
+
+
+@partial(jax.jit, static_argnums=(0,))
+def linearize_regularized(f: NonlinearModel, x: MVNSqrt, l):
+    m = x.mean
+    res, F_x = f(m), jax.jacfwd(f, 0)(m)
+    cholR = jnp.zeros((res.shape[0], res.shape[0]))
+
+    # regularization:
+    d, D = res.shape[0], m.shape[0]
+    reg_H = jnp.eye(D)
+    reg_b = -m
+    # this is just a choice; S could be different!
+    reg_cholS = jnp.eye(D) / jnp.sqrt(l)
+    # reg_cholS = x.chol / jnp.sqrt(l)
+
+    # Combine them
+    full_b = jnp.block([res, reg_b])
+    full_H = jnp.concatenate([F_x, reg_H], axis=0)
+    full_cholR = jnp.block([[cholR, jnp.zeros((d, D))], [jnp.zeros((D, d)), reg_cholS]])
+
+    return AffineModel(full_H, full_b, full_cholR)
