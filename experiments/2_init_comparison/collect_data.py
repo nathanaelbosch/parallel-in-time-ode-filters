@@ -11,7 +11,12 @@ from tqdm import trange
 from pof.diffrax import solve_diffrax
 from pof.initialization import get_initial_trajectory, taylor_mode_init, uncertain_init
 from pof.ivp import logistic, lotkavolterra
-from pof.observations import NonlinearModel, linearize, uncertain_linearize
+from pof.observations import (
+    NonlinearModel,
+    linearize,
+    uncertain_linearize,
+    linearize_regularized,
+)
 from pof.parallel_filtsmooth import linear_filtsmooth
 from pof.sequential_filtsmooth.filter import _sqrt_update, _sqrt_predict
 from pof.transitions import (
@@ -32,6 +37,9 @@ lom_uncertain = jax.jit(
     jax.vmap(uncertain_linearize, in_axes=[None, 0]), static_argnums=(0,)
 )
 lom = jax.jit(jax.vmap(linearize, in_axes=[None, 0]), static_argnums=(0,))
+lom_reg = jax.jit(
+    jax.vmap(linearize_regularized, in_axes=[None, 0, None]), static_argnums=(0,)
+)
 
 
 def set_up(ivp, dt, order):
@@ -62,9 +70,11 @@ def set_up(ivp, dt, order):
     }
 
 
-def eks_step(dtm, om, x0, traj, uncertain):
+def eks_step(dtm, om, x0, traj, uncertain=False, reg=0):
     if uncertain:
         dom = lom_uncertain(om, traj)
+    elif reg > 0:
+        dom = lom_reg(om, traj, reg)
     else:
         dom = lom(om, traj)
     return fs(x0, dtm, dom)
@@ -78,41 +88,29 @@ def calibrate(out, dtm, ssq):
 
 
 def ieks_iterator(dtm, om, x0, init_traj, maxiter=250):
-    uncertain = True
+    reg = 0
+    # reg = 1e-10 * jnp.ones(1)[1]
     bar = trange(maxiter)
 
-    out, nll, obj, ssq = eks_step(dtm, om, x0, init_traj, uncertain=uncertain)
+    out, nll, obj, ssq = eks_step(dtm, om, x0, init_traj, reg=reg)
     out, dtm = calibrate(out, dtm, ssq)
     bar.set_description(f"[OBJ={obj:.4e} NLL={nll:.4e} ssq={ssq:.4e}]")
     bar.update(1)
     yield out, nll, obj
     for _ in bar:
+
         nll_old, obj_old, mean_old = nll, obj, out.mean
-        out, nll, obj, ssq = eks_step(
-            dtm, om, x0, jax.tree_map(lambda l: l[1:], out), uncertain=uncertain
-        )
+
+        lin_traj = jax.tree_map(lambda l: l[1:], out)
+        out, nll, obj, ssq = eks_step(dtm, om, x0, lin_traj, reg=reg)
+
         out, dtm = calibrate(out, dtm, ssq)
 
-        rel_obj_change = (obj - obj_old) / obj_old * 100
-        rel_nll_change = (nll - nll_old) / nll_old * 100
-        threshold = 10
-        if (
-            uncertain
-            and jnp.abs(rel_obj_change) < threshold
-            and jnp.abs(rel_nll_change) < threshold
-        ):
-            uncertain = False
-
         bar.set_description(f"[OBJ={obj:.4e} NLL={nll:.4e} ssq={ssq:.4e}]")
-        bar.write(f"OBJ: {rel_obj_change:.1}%; NLL: {rel_nll_change:.1}%")
 
         yield out, nll, obj
         if (
-            (
-                jnp.isclose(nll_old, nll)
-                and jnp.isclose(obj_old, obj)
-                # and jnp.isclose(mean_old, out.mean).all()
-            )
+            (jnp.isclose(nll_old, nll) and jnp.isclose(obj_old, obj))
             or jnp.isnan(nll)
             or jnp.isnan(obj)
         ):
@@ -236,7 +234,7 @@ PROBS = {
             (1e-0, "1e-0"),
             (1e-1, "1e-1"),
             (1e-2, "1e-2"),
-            (1e-3, "1e-3"),
+            # (1e-3, "1e-3"),
             # (1e-4, "1e-4"),
         ),
     ),

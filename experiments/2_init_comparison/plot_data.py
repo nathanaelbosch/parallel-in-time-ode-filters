@@ -106,10 +106,8 @@ for ivp, dts in (
     fig.supylabel("Mean squared error")
     axes[0].legend()
 
-    fig.suptitle(
-        f"Lotka-Volterra (order={order}; uncertainty-aware linearization hybrid)"
-    )
+    fig.suptitle(f"Lotka-Volterra (order={order}; LM-regularized)")
 
-    _p = folder / f"{ivp}_order{order}_uncertainlin_hybrid.pdf"
+    _p = folder / f"{ivp}_order{order}_reg.pdf"
     fig.savefig(_p)
     print(f"saved figure to {_p}")
