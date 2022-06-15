@@ -236,21 +236,10 @@ def constant_init(setup):
     return precondition(setup, raw_traj)
 
 
-def _prior_extrapolation(x0, iwp, ts):
-    def predict(t):
-        tm = get_transition_model(iwp, t)
-        return _sqrt_predict(tm.F, tm.QL, x0)
-
-    return jax.vmap(predict)(ts)
-
-
 def prior_init(setup):
-    ivp = setup["ivp"]
-    assert ivp.t0 == 0
-    iwp = IWP(num_derivatives=setup["order"], wiener_process_dimension=ivp.y0.shape[0])
-    x0_raw = jax.tree_map(lambda l: setup["P"] @ l, setup["x0"])
-    states_raw = _prior_extrapolation(x0_raw, iwp, setup["ts"][1:])
-    return precondition(setup, states_raw)
+    dtm = setup["dtm"]
+    x0 = setup["x0"]
+    return jax.vmap(lambda F, QL: _sqrt_predict(F, QL, x0))(dtm.F, dtm.QL)
 
 
 def updated_prior_init(setup):
