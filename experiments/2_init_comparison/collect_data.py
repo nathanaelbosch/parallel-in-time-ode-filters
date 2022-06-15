@@ -10,6 +10,7 @@ import pandas as pd
 from tqdm import trange
 
 from pof.diffrax import solve_diffrax
+
 from pof.initialization import get_initial_trajectory, taylor_mode_init, uncertain_init
 from pof.ivp import logistic, lotkavolterra
 from pof.observations import (
@@ -21,6 +22,7 @@ from pof.observations import (
 )
 from pof.parallel_filtsmooth import linear_filtsmooth
 from pof.sequential_filtsmooth.filter import _sqrt_update, _sqrt_predict
+from pof.sequential_filtsmooth.smoother import _sqrt_smooth
 from pof.sequential_filtsmooth import filtsmooth
 from pof.transitions import (
     IWP,
@@ -70,7 +72,7 @@ def set_up(ivp, dt, order):
         "P": P,
         "PI": PI,
         "order": order,
-        "ivp": ivp,
+        "iwp": iwp,
     }
 
 
@@ -276,11 +278,50 @@ def coarse_solver_init(setup, dt=None):
     return precondition(setup, raw_traj)
 
 
+def _interpolate(out, ts, t, idx, iwp):
+    xprev = jax.tree_map(lambda l: l[idx], out)
+    tprev = ts[idx]
+    xnext = jax.tree_map(lambda l: l[idx + 1], out)
+    tnext = ts[idx + 1]
+
+    F, QL = preconditioned_discretize(iwp)
+
+    # predict
+    P, PI = nordsieck_preconditioner(iwp, t - tprev)
+    xp = _sqrt_predict(F, QL, jax.tree_map(lambda l: PI @ l, xprev))
+    xp = jax.tree_map(lambda l: P @ l, xp)
+
+    # smooth
+    P, PI = nordsieck_preconditioner(iwp, tnext - t)
+    xnext = jax.tree_map(lambda l: PI @ l, xnext)
+    xp = jax.tree_map(lambda l: PI @ l, xp)
+    x = _sqrt_smooth(F, QL, xp, xnext)
+    x = jax.tree_map(lambda l: P @ l, x)
+    return x
+
+
+def _interpolate_lazy(out, ts, t, idx, iwp):
+    xprev = jax.tree_map(lambda l: l[idx], out)
+    return xprev
+
+
 def coarse_ekf_init(setup, dt=None):
     if dt is None:
         dt = _get_coarse_dt(setup) / 10
     _setup = set_up(setup["ivp"], dt, setup["order"])
-    out, _ = filtsmooth(_setup["x0"], _setup["dtm"], _setup["om"])
+    _out, _ = filtsmooth(_setup["x0"], _setup["dtm"], _setup["om"])
+    _ts = _setup["ts"]
+    _out = jax.tree_map(jax.vmap(lambda l: _setup["P"] @ l), _out)
+
+    idxs = jnp.floor(setup["ts"] / dt).astype(int)
+    out = jax.vmap(lambda t, idx: _interpolate_lazy(_out, _ts, t, idx, setup["iwp"]))(
+        setup["ts"], idxs
+    )
+    out = jax.tree_map(lambda l1, l2: l1.at[0].set(l2[0]), out, _out)
+    out = jax.tree_map(lambda l1, l2: l1.at[-1].set(l2[-1]), out, _out)
+
+    out = precondition(setup, out)
+
     return jax.tree_map(lambda l: l[1:], out)
 
 
@@ -294,7 +335,7 @@ INITS = (
     # ("coarse_solver_2p-3", lambda s: coarse_solver_init(s, 2.0**-3)),
     # ("coarse_solver_2p-4", lambda s: coarse_solver_init(s, 2.0**-4)),
     ("coarse_dopri5", coarse_solver_init),
-    # ("coarse_ekf", coarse_ekf_init),
+    ("coarse_ekf", coarse_ekf_init),
 )
 INIT_NAMES = [i[0] for i in INITS]
 
