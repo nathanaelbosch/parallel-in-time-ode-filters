@@ -344,8 +344,7 @@ INIT_NAMES = [i[0] for i in INITS]
 # Evaluation
 ########################################################################################
 # Setup
-ORDER = 1
-
+ORDERS = (1, 2, 3, 5)
 PROBS = {
     # "logistic": (
     #     logistic(),
@@ -368,42 +367,48 @@ PROBS = {
     ),
 }
 
-for (probname, (ivp, dts)) in PROBS.items():
-    print(
-        f"""
-        ###############################################
-        # Prob: {probname}
-        ###############################################
-        """
-    )
+for order in ORDERS:
 
-    sol_true = solve_diffrax(ivp.f, ivp.y0, ivp.t_span, atol=1e-20, rtol=1e-20)
-    for dt, dt_str in dts:
-        setup = set_up(ivp, dt, order=ORDER)
-        ys_true = jax.vmap(sol_true.evaluate)(setup["ts"])
+    for (probname, (ivp, dts)) in PROBS.items():
+        print(
+            f"""
+            ###############################################
+            # Prob: {probname}
+            ###############################################
+            """
+        )
 
-        # Eval each INIT
-        dfs = {}
-        for n, init in INITS:
-            print(f"initialization: {n}")
-            traj = init(setup)
-            res, k = evaluate(traj, setup, ys_true)
-            df = pd.DataFrame(res)
-            dfs[n] = df
+        sol_true = solve_diffrax(ivp.f, ivp.y0, ivp.t_span, atol=1e-20, rtol=1e-20)
+        for dt, dt_str in dts:
+            setup = set_up(ivp, dt, order=order)
+            ys_true = jax.vmap(sol_true.evaluate)(setup["ts"])
 
-        # Merge dataframes
-        n = INIT_NAMES[0]
-        df = dfs[n]
-        add_suffix = lambda df, n: df.rename(columns=lambda c: f"{c}_{n}")
-        df = add_suffix(df, n)
-        for i in range(1, len(INITS)):
-            n = INIT_NAMES[i]
-            df = pd.merge(
-                df, add_suffix(dfs[n], n), "outer", left_index=True, right_index=True
-            )
+            # Eval each INIT
+            dfs = {}
+            for n, init in INITS:
+                print(f"initialization: {n}")
+                traj = init(setup)
+                res, k = evaluate(traj, setup, ys_true)
+                df = pd.DataFrame(res)
+                dfs[n] = df
 
-        # Save
-        path = Path("experiments/2_init_comparison/data")
-        filename = f"prob={probname}_dt={dt_str}_order={ORDER}_qpm.csv"
-        df.to_csv(path / filename)
-        print(f"Saved to {path / filename}")
+            # Merge dataframes
+            n = INIT_NAMES[0]
+            df = dfs[n]
+            add_suffix = lambda df, n: df.rename(columns=lambda c: f"{c}_{n}")
+            df = add_suffix(df, n)
+            for i in range(1, len(INITS)):
+                n = INIT_NAMES[i]
+                df = pd.merge(
+                    df,
+                    add_suffix(dfs[n], n),
+                    "outer",
+                    left_index=True,
+                    right_index=True,
+                )
+
+            # Save
+            path = Path("experiments/2_init_comparison/data")
+            filename = f"prob={probname}_dt={dt_str}_order={order}_qpm.csv"
+            df.to_csv(path / filename)
+            print(f"Saved to {path / filename}")

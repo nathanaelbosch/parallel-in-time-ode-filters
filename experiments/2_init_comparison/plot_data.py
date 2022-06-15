@@ -31,7 +31,7 @@ names = (
     # ("coarse_solver_2p-3", "RK (dt=$2^{-3}$)"),
     # ("coarse_solver_2p-4", "RK (dt=$2^{-4}$)"),
     ("coarse_dopri5", "Coarse RK"),
-    # ("coarse_ekf", "EKS ($\log(N)$ steps)"),
+    ("coarse_ekf", "Coarse EKS"),
 )
 _colors = ["r", "g", "b", "k", "dimgray", "gray", "darkgray", "lightgray"]
 _markers = ["p", "P", "X", "d", "s", "*", "o", "v"]
@@ -40,7 +40,8 @@ cycle = cycler("color", _colors) + cycler("marker", _markers)
 toplot = "mse"
 # toplot = "nll"
 # toplot = "obj"
-orders = (1, 2, 3)
+orders = (2, 3, 5)
+suffix = "qpm"
 
 
 folder = Path("experiments/2_init_comparison/")
@@ -76,7 +77,7 @@ for ivp, dts in (
     for k, order in enumerate(orders):
         for i, dt in enumerate(dts):
             ax = axes[k, i]
-            filename = f"prob={ivp}_dt={dt}_order={order}_qpm.csv"
+            filename = f"prob={ivp}_dt={dt}_order={order}_{suffix}.csv"
             df = pd.read_csv(folder / "data" / filename, index_col=0)
 
             ax.set_prop_cycle(cycle)
@@ -94,15 +95,15 @@ for ivp, dts in (
             best = df["mse_coarse_dopri5"].dropna()
             minval = best[best.last_valid_index()]
             ax.axhline(minval, color="black", linestyle="dashed", zorder=-1)
-        ax.set_xlim(-1, 41)
-        ax.set_ylim(1e-15, 1e5)
+        ax.set_xlim(-1, 51)
+        # ax.set_ylim(1e-16, 1e15)
     fig.supxlabel("Number of iterations")
     fig.supylabel("Mean squared error")
-    axes[0, 0].legend()
+    axes[-1, -1].legend()
     # fig.legend(*axes[0, 0].get_legend_handles_labels())
 
     fig.suptitle(f"Lotka-Volterra")
 
-    _p = folder / f"{ivp}_qpm.pdf"
+    _p = folder / f"{ivp}_{suffix}.pdf"
     fig.savefig(_p)
     print(f"saved figure to {_p}")
