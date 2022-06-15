@@ -67,17 +67,8 @@ def set_up(ivp, dt, order):
         "P": P,
         "PI": PI,
         "order": order,
+        "ivp": ivp,
     }
-
-
-def eks_step(dtm, om, x0, traj, uncertain=False, reg=0):
-    if uncertain:
-        dom = lom_uncertain(om, traj)
-    elif reg > 0:
-        dom = lom_reg(om, traj, reg)
-    else:
-        dom = lom(om, traj)
-    return fs(x0, dtm, dom)
 
 
 def calibrate(out, dtm, ssq):
@@ -88,12 +79,11 @@ def calibrate(out, dtm, ssq):
 
 
 def ieks_iterator(dtm, om, x0, init_traj, maxiter=250):
-    reg = 0
-    # reg = 1e-10 * jnp.ones(1)[1]
     bar = trange(maxiter)
 
-    out, nll, obj, ssq = eks_step(dtm, om, x0, init_traj, reg=reg)
-    out, dtm = calibrate(out, dtm, ssq)
+    dom = lom(om, init_traj)
+    out, nll, obj, ssq = fs(x0, dtm, dom)
+
     bar.set_description(f"[OBJ={obj:.4e} NLL={nll:.4e} ssq={ssq:.4e}]")
     bar.update(1)
     yield out, nll, obj
@@ -101,10 +91,8 @@ def ieks_iterator(dtm, om, x0, init_traj, maxiter=250):
 
         nll_old, obj_old, mean_old = nll, obj, out.mean
 
-        lin_traj = jax.tree_map(lambda l: l[1:], out)
-        out, nll, obj, ssq = eks_step(dtm, om, x0, lin_traj, reg=reg)
-
-        out, dtm = calibrate(out, dtm, ssq)
+        dom = lom(om, jax.tree_map(lambda l: l[1:], out))
+        out, nll, obj, ssq = fs(x0, dtm, dom)
 
         bar.set_description(f"[OBJ={obj:.4e} NLL={nll:.4e} ssq={ssq:.4e}]")
 
@@ -116,6 +104,92 @@ def ieks_iterator(dtm, om, x0, init_traj, maxiter=250):
         ):
             bar.close()
             break
+
+
+def lm_ieks_iterator(dtm, om, x0, init_traj, maxiter=250):
+    reg, nu = 1e0, 10.0
+    bar = trange(maxiter)
+
+    dom = lom_reg(om, init_traj, reg)
+    out, nll, obj, ssq = fs(x0, dtm, dom)
+
+    bar.set_description(f"[OBJ={obj:.4e} NLL={nll:.4e} ssq={ssq:.4e} reg={reg:.4e}]")
+    bar.update(1)
+    yield out, nll, obj
+    for _ in bar:
+
+        nll_old, obj_old, out_old = nll, obj, out
+
+        dom = lom_reg(om, jax.tree_map(lambda l: l[1:], out), reg)
+        out, nll, obj, ssq = fs(x0, dtm, dom)
+
+        if obj < obj_old:
+            reg /= nu
+        else:
+            reg *= nu
+            out = out_old
+
+        bar.set_description(
+            f"[OBJ={obj:.4e} NLL={nll:.4e} ssq={ssq:.4e} reg={reg:.4e}]"
+        )
+
+        yield out, nll, obj
+        if (
+            (jnp.isclose(nll_old, nll) and jnp.isclose(obj_old, obj))
+            or jnp.isnan(nll)
+            or jnp.isnan(obj)
+        ):
+            bar.close()
+            break
+
+
+def qpm_ieks_iterator(dtm, om, x0, init_traj, maxiter=250):
+    reg, fact = 1e-3, 1e6
+    bar = trange(maxiter)
+
+    init_covs = init_traj.chol
+
+    dom = lom(om, init_traj)
+    dom = jax.vmap(AffineModel)(
+        dom.H,
+        dom.b,
+        # jax.vmap(lambda cR: reg * jnp.eye(*cR.shape))(dom.cholR),
+        jax.vmap(lambda H, cP: reg * tria(H @ cP))(dom.H, init_covs),
+    )
+    out, nll, obj, ssq = fs(x0, dtm, dom)
+
+    bar.set_description(f"[OBJ={obj:.4e} NLL={nll:.4e} ssq={ssq:.4e} reg={reg:.4e}]")
+    bar.update(1)
+    yield out, nll, obj
+    for _ in bar:
+
+        nll_old, obj_old, out_old = nll, obj, out
+
+        dom = lom(om, jax.tree_map(lambda l: l[1:], out))
+        dom = jax.vmap(AffineModel)(
+            dom.H,
+            dom.b,
+            # jax.vmap(lambda cR: reg * jnp.eye(*cR.shape))(dom.cholR),
+            jax.vmap(lambda H, cP: reg * tria(H @ cP))(dom.H, init_covs),
+        )
+        out, nll, obj, ssq = fs(x0, dtm, dom)
+
+        bar.set_description(
+            f"[OBJ={obj:.4e} NLL={nll:.4e} ssq={ssq:.4e} reg={reg:.4e}]"
+        )
+
+        yield out, nll, obj
+        # if (
+        #     (jnp.isclose(nll_old, nll) and jnp.isclose(obj_old, obj))
+        #     or jnp.isnan(nll)
+        #     or jnp.isnan(obj)
+        # ):
+        if jnp.isclose(obj_old - nll_old, obj - nll):
+            if reg < 1e-15:
+                bar.close()
+                break
+            else:
+                reg /= fact
 
 
 def evaluate(init_traj, setup, ys_true):
