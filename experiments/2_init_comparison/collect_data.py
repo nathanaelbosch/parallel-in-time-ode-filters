@@ -17,9 +17,11 @@ from pof.observations import (
     linearize,
     uncertain_linearize,
     linearize_regularized,
+    AffineModel,
 )
 from pof.parallel_filtsmooth import linear_filtsmooth
 from pof.sequential_filtsmooth.filter import _sqrt_update, _sqrt_predict
+from pof.sequential_filtsmooth import filtsmooth
 from pof.transitions import (
     IWP,
     TransitionModel,
@@ -28,7 +30,7 @@ from pof.transitions import (
     preconditioned_discretize,
     projection_matrix,
 )
-from pof.utils import MVNSqrt
+from pof.utils import MVNSqrt, tria
 
 fs = linear_filtsmooth
 if jax.lib.xla_bridge.get_backend().platform == "gpu":
@@ -285,6 +287,14 @@ def coarse_solver_init(setup, dt=None):
     return precondition(setup, raw_traj)
 
 
+def coarse_ekf_init(setup, dt=None):
+    if dt is None:
+        dt = _get_coarse_dt(setup) / 10
+    _setup = set_up(setup["ivp"], dt, setup["order"])
+    out, _ = filtsmooth(_setup["x0"], _setup["dtm"], _setup["om"])
+    return jax.tree_map(lambda l: l[1:], out)
+
+
 INITS = (
     # ("constant", constant_init),
     ("prior", prior_init),
@@ -295,6 +305,7 @@ INITS = (
     # ("coarse_solver_2p-3", lambda s: coarse_solver_init(s, 2.0**-3)),
     # ("coarse_solver_2p-4", lambda s: coarse_solver_init(s, 2.0**-4)),
     ("coarse_dopri5", coarse_solver_init),
+    # ("coarse_ekf", coarse_ekf_init),
 )
 INIT_NAMES = [i[0] for i in INITS]
 
