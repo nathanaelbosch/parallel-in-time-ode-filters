@@ -203,7 +203,7 @@ def evaluate(init_traj, setup, ys_true):
     results["obj"].append(np.inf)
     results["mse"].append(mse.item())
 
-    ieks_iter = ieks_iterator(setup["dtm"], setup["om"], setup["x0"], init_traj)
+    ieks_iter = qpm_ieks_iterator(setup["dtm"], setup["om"], setup["x0"], init_traj)
     for (k, (out, nll, obj)) in enumerate(ieks_iter):
         mse = get_mse(out.mean, setup["E0"], ys_true)
         results["nll"].append(nll.item())
@@ -314,7 +314,7 @@ INIT_NAMES = [i[0] for i in INITS]
 # Evaluation
 ########################################################################################
 # Setup
-ORDER = 4
+ORDER = 1
 
 PROBS = {
     # "logistic": (
@@ -329,10 +329,10 @@ PROBS = {
     "lotkavolterra": (
         lotkavolterra(),
         (
-            (1e-0, "1e-0"),
+            # (1e-0, "1e-0"),
             (1e-1, "1e-1"),
             (1e-2, "1e-2"),
-            # (1e-3, "1e-3"),
+            (1e-3, "1e-3"),
             # (1e-4, "1e-4"),
         ),
     ),
@@ -371,8 +371,9 @@ for (probname, (ivp, dts)) in PROBS.items():
             df = pd.merge(
                 df, add_suffix(dfs[n], n), "outer", left_index=True, right_index=True
             )
-            # Save
+
+        # Save
         path = Path("experiments/2_init_comparison/data")
-        filename = f"prob={probname}_dt={dt_str}_order={ORDER}_dev.csv"
+        filename = f"prob={probname}_dt={dt_str}_order={ORDER}_qpm.csv"
         df.to_csv(path / filename)
         print(f"Saved to {path / filename}")
