@@ -22,8 +22,8 @@ def parallel_eks(f, y0, ts, order):
     dtm = discretize_transitions(iwp, ts)
     x0 = taylor_mode_init(f, y0, order)
     traj = get_initial_trajectory(y0, f, order, N=ts.shape[0])
-    dom = linearize_observation_model(om, traj[1:])
-    out, _, _ = linear_filtsmooth(x0, dtm, dom)
+    dom = linearize_observation_model(om, jax.tree_map(lambda l: l[1:], traj))
+    out, _, _, _ = linear_filtsmooth(x0, dtm, dom)
     return out.mean, 0
 
 
@@ -32,7 +32,6 @@ def sequential_eks(f, y0, ts, order):
     dtm = discretize_transitions(iwp, ts)
     x0 = taylor_mode_init(f, y0, order)
     traj = get_initial_trajectory(y0, f, order, N=ts.shape[0])
-    dom = linearize_observation_model(om, traj[1:])
     out, _ = filtsmooth(x0, dtm, om)
     return out.mean, 0
 
