@@ -3,7 +3,9 @@ import jax.numpy as jnp
 
 
 def solve_diffrax(
-    ivp,
+    f,
+    y0,
+    tspan,
     solver=diffrax.Dopri5,
     ts=None,
     rtol=1e-3,
@@ -11,8 +13,8 @@ def solve_diffrax(
     max_steps=int(1e6),
     dt=None,
 ):
-
-    vector_field = lambda t, y, args: ivp.f(t, y)
+    t0, tmax = tspan
+    vector_field = lambda t, y, args: f(t, y)
     term = diffrax.ODETerm(vector_field)
 
     if ts is None:
@@ -28,10 +30,10 @@ def solve_diffrax(
     sol = diffrax.diffeqsolve(
         term,
         solver(),
-        t0=ivp.t0,
-        t1=ivp.tmax,
+        t0=t0,
+        t1=tmax,
         dt0=dt,
-        y0=ivp.y0,
+        y0=y0,
         saveat=saveat,
         stepsize_controller=stepsize_controller,
         max_steps=max_steps,

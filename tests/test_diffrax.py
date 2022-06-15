@@ -10,6 +10,6 @@ def ivp():
 
 
 def test_diffrax(ivp):
-    sol = solve_diffrax(ivp, rtol=1e-10, atol=1e-10)
+    sol = solve_diffrax(ivp.f, ivp.y0, ivp.t_span, rtol=1e-10, atol=1e-10)
     ts, ys = get_ts_ys(sol)
     assert ts.shape[0] == ys.shape[0]

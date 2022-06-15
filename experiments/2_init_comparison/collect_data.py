@@ -1,5 +1,6 @@
 from collections import defaultdict
 from pathlib import Path
+import diffrax
 
 # import diffrax
 import jax
@@ -266,22 +267,34 @@ def updated_prior_init(setup):
     return states
 
 
-def coarse_solver_init(setup, dt):
-    sol_init = solve_diffrax(ivp, dt=dt)
+def _get_coarse_dt(setup):
+    ts = setup["ts"]
+    T = ts[-1] - ts[0]
+    N = len(ts)
+    N_coarse = jnp.ceil(jnp.log2(N))
+    dt = T / N_coarse
+    return dt
+
+
+def coarse_solver_init(setup, dt=None):
+    if dt is None:
+        dt = _get_coarse_dt(setup) / 2
+    sol_init = solve_diffrax(ivp.f, ivp.y0, ivp.t_span, dt=dt)
     ys = jax.vmap(sol_init.evaluate)(setup["ts"][1:])
     raw_traj = get_initial_trajectory(ys, ivp.f, order=setup["order"])
     return precondition(setup, raw_traj)
 
 
 INITS = (
-    ("constant", constant_init),
+    # ("constant", constant_init),
     ("prior", prior_init),
-    ("updated_prior", updated_prior_init),
+    # ("updated_prior", updated_prior_init),
     # ("coarse_solver_2p-0", lambda s: coarse_solver_init(s, 2.0**-0)),
-    ("coarse_solver_2p-1", lambda s: coarse_solver_init(s, 2.0**-1)),
-    ("coarse_solver_2p-2", lambda s: coarse_solver_init(s, 2.0**-2)),
-    ("coarse_solver_2p-3", lambda s: coarse_solver_init(s, 2.0**-3)),
-    ("coarse_solver_2p-4", lambda s: coarse_solver_init(s, 2.0**-4)),
+    # ("coarse_solver_2p-1", lambda s: coarse_solver_init(s, 2.0**-1)),
+    # ("coarse_solver_2p-2", lambda s: coarse_solver_init(s, 2.0**-2)),
+    # ("coarse_solver_2p-3", lambda s: coarse_solver_init(s, 2.0**-3)),
+    # ("coarse_solver_2p-4", lambda s: coarse_solver_init(s, 2.0**-4)),
+    ("coarse_dopri5", coarse_solver_init),
 )
 INIT_NAMES = [i[0] for i in INITS]
 
@@ -323,7 +336,7 @@ for (probname, (ivp, dts)) in PROBS.items():
         """
     )
 
-    sol_true = solve_diffrax(ivp, atol=1e-20, rtol=1e-20)
+    sol_true = solve_diffrax(ivp.f, ivp.y0, ivp.t_span, atol=1e-20, rtol=1e-20)
     for dt, dt_str in dts:
         setup = set_up(ivp, dt, order=ORDER)
         ys_true = jax.vmap(sol_true.evaluate)(setup["ts"])
