@@ -178,7 +178,7 @@ def qpm_ieks_iterator(dtm, om, x0, init_traj, maxiter=250):
                 reg /= fact
 
 
-def evaluate(init_traj, setup, ys_true):
+def evaluate(init_traj, setup, ys_true, opt="ieks"):
     results = defaultdict(lambda: [])
 
     mse = get_mse(init_traj.mean, setup["E0"], ys_true[1:])
@@ -186,7 +186,13 @@ def evaluate(init_traj, setup, ys_true):
     results["obj"].append(np.inf)
     results["mse"].append(mse.item())
 
-    ieks_iter = ieks_iterator(setup["dtm"], setup["om"], setup["x0"], init_traj)
+    _iterator = {
+        "ieks": ieks_iterator,
+        "lm": lm_ieks_iterator,
+        "qpm": qpm_ieks_iterator,
+    }[opt]
+
+    ieks_iter = _iterator(setup["dtm"], setup["om"], setup["x0"], init_traj)
     for (k, (out, nll, obj)) in enumerate(ieks_iter):
         mse = get_mse(out.mean, setup["E0"], ys_true)
         results["nll"].append(nll.item())
@@ -256,9 +262,29 @@ def merge_dataframes(dfs, names):
     return df
 
 
-########################################################################################
-# Evaluation
-########################################################################################
+def run_exp(*, ivp, dts, order, probname, opt="ieks"):
+    sol_true = solve_diffrax(ivp.f, ivp.y0, ivp.t_span, atol=1e-20, rtol=1e-20)
+    for dt, dt_str in dts:
+        setup = set_up(ivp, dt, order=order)
+        ys_true = jax.vmap(sol_true.evaluate)(setup["ts"])
+
+        # Eval each INIT
+        dfs = {}
+        for n, initf in INITS:
+            print(f"initialization: {n}")
+            traj = initf(setup)
+            res, k = evaluate(traj, setup, ys_true, opt=opt)
+            df = pd.DataFrame(res)
+            dfs[n] = df
+
+        # Merge dataframes
+        df = merge_dataframes(dfs, [i[0] for i in INITS])
+
+        # Save
+        path = Path("experiments/2_init_comparison/data")
+        filename = f"prob={probname}_dt={dt_str}_order={order}_opt={opt}.csv"
+        df.to_csv(path / filename)
+        print(f"Saved to {path / filename}")
 
 
 INITS = (
@@ -269,59 +295,18 @@ INITS = (
     ("coarse_ekf", coarse_ekf_init),
 )
 ORDERS = (1, 2, 3, 5)
-PROBS = {
-    # "logistic": (
-    #     logistic(),
-    #     (
-    #         (1e-0, "1e-0"),
-    #         (1e-1, "1e-1"),
-    #         (1e-2, "1e-2"),
-    #         (1e-3, "1e-3"),
-    #     ),
-    # ),
-    "lotkavolterra": (
-        lotkavolterra(),
-        (
-            # (1e-0, "1e-0"),
-            (1e-1, "1e-1"),
-            (1e-2, "1e-2"),
-            (1e-3, "1e-3"),
-            # (1e-4, "1e-4"),
-        ),
-    ),
-}
+IVP, PROBNAME = lotkavolterra(), "lotkavolterra"
+DTS = (
+    # (1e-0, "1e-0"),
+    (1e-1, "1e-1"),
+    (1e-2, "1e-2"),
+    (1e-3, "1e-3"),
+    # (1e-4, "1e-4"),
+)
+OPT = "ieks"
 
 
-for order in ORDERS:
-
-    for (probname, (ivp, dts)) in PROBS.items():
-        print(
-            f"""
-            ###############################################
-            # Prob: {probname}
-            ###############################################
-            """
-        )
-
-        sol_true = solve_diffrax(ivp.f, ivp.y0, ivp.t_span, atol=1e-20, rtol=1e-20)
-        for dt, dt_str in dts:
-            setup = set_up(ivp, dt, order=order)
-            ys_true = jax.vmap(sol_true.evaluate)(setup["ts"])
-
-            # Eval each INIT
-            dfs = {}
-            for n, initf in INITS:
-                print(f"initialization: {n}")
-                traj = initf(setup)
-                res, k = evaluate(traj, setup, ys_true)
-                df = pd.DataFrame(res)
-                dfs[n] = df
-
-            # Merge dataframes
-            df = merge_dataframes(dfs, [i[0] for i in INITS])
-
-            # Save
-            path = Path("experiments/2_init_comparison/data")
-            filename = f"prob={probname}_dt={dt_str}_order={order}_paper.csv"
-            df.to_csv(path / filename)
-            print(f"Saved to {path / filename}")
+if __name__ == "__main__":
+    # for order in ORDERS:
+    order = 1
+    run_exp(ivp=IVP, dts=DTS, order=order, probname=PROBNAME, opt=OPT)
