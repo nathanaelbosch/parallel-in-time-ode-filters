@@ -1,4 +1,5 @@
 from collections import defaultdict
+import itertools
 from pathlib import Path
 import diffrax
 
@@ -262,15 +263,14 @@ def merge_dataframes(dfs, names):
     return df
 
 
-def run_exp(*, ivp, dts, order, probname, opt="ieks"):
+def run_exp(*, ivp, dts, order, probname, inits, opt="ieks"):
     sol_true = solve_diffrax(ivp.f, ivp.y0, ivp.t_span, atol=1e-20, rtol=1e-20)
     for dt, dt_str in dts:
         setup = set_up(ivp, dt, order=order)
         ys_true = jax.vmap(sol_true.evaluate)(setup["ts"])
 
-        # Eval each INIT
         dfs = {}
-        for n, initf in INITS:
+        for n, initf in inits:
             print(f"initialization: {n}")
             traj = initf(setup)
             res, k = evaluate(traj, setup, ys_true, opt=opt)
@@ -278,7 +278,7 @@ def run_exp(*, ivp, dts, order, probname, opt="ieks"):
             dfs[n] = df
 
         # Merge dataframes
-        df = merge_dataframes(dfs, [i[0] for i in INITS])
+        df = merge_dataframes(dfs, [i[0] for i in inits])
 
         # Save
         path = Path("experiments/2_init_comparison/data")
@@ -287,26 +287,27 @@ def run_exp(*, ivp, dts, order, probname, opt="ieks"):
         print(f"Saved to {path / filename}")
 
 
-INITS = (
-    # ("constant", constant_init),
-    ("prior", prior_init),
-    # ("updated_prior", updated_prior_init),
-    ("coarse_dopri5", coarse_solver_init),
-    ("coarse_ekf", coarse_ekf_init),
-)
-ORDERS = (1, 2, 3, 5)
-IVP, PROBNAME = lotkavolterra(), "lotkavolterra"
-DTS = (
-    # (1e-0, "1e-0"),
-    (1e-1, "1e-1"),
-    (1e-2, "1e-2"),
-    (1e-3, "1e-3"),
-    # (1e-4, "1e-4"),
-)
-OPT = "ieks"
-
-
 if __name__ == "__main__":
-    # for order in ORDERS:
-    order = 1
-    run_exp(ivp=IVP, dts=DTS, order=order, probname=PROBNAME, opt=OPT)
+    INITS = (
+        # ("constant", constant_init),
+        ("prior", prior_init),
+        # ("updated_prior", updated_prior_init),
+        ("coarse_dopri5", coarse_solver_init),
+        ("coarse_ekf", coarse_ekf_init),
+    )
+    # ORDERS = (1, 2, 3, 5)
+    ORDERS = (1, 2)
+    IVP, PROBNAME = lotkavolterra(), "lotkavolterra"
+    # IVP, PROBNAME = logistic(), "logistic"
+    DTS = (
+        # (1e-0, "1e-0"),
+        (1e-1, "1e-1"),
+        (1e-2, "1e-2"),
+        (1e-3, "1e-3"),
+        # (1e-4, "1e-4"),
+    )
+    # OPTS = ("ieks", "qpm")
+    OPTS = ("ieks",)
+
+    for (order, opt) in itertools.product(ORDERS, OPTS):
+        run_exp(ivp=IVP, dts=DTS, order=order, probname=PROBNAME, opt=opt, inits=INITS)

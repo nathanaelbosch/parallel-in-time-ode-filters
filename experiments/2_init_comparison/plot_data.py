@@ -77,7 +77,7 @@ for ivp, dts in (
     for k, order in enumerate(orders):
         for i, dt in enumerate(dts):
             ax = axes[k, i]
-            filename = f"prob={ivp}_dt={dt}_order={order}_{suffix}.csv"
+            filename = f"prob={ivp}_dt={dt}_order={order}_opt={opt}.csv"
             df = pd.read_csv(folder / "data" / filename, index_col=0)
 
             ax.set_prop_cycle(cycle)
@@ -104,6 +104,6 @@ for ivp, dts in (
 
     fig.suptitle(f"Lotka-Volterra")
 
-    _p = folder / f"{ivp}_{suffix}.pdf"
+    _p = folder / f"{ivp}_{opt}.pdf"
     fig.savefig(_p)
     print(f"saved figure to {_p}")
