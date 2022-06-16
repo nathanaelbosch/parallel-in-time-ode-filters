@@ -100,7 +100,7 @@ def _get_coarse_dt(fine_ts):
 def coarse_ekf_init(*, f, y0, order, ts, fact=10):
     coarse_dt = _get_coarse_dt(ts) / fact
 
-    tspan = (ts[0], ts[1])
+    tspan = (ts[0], ts[-1])
     from pof.solver import sequential_eks_solve
 
     _out, _ts, _ = sequential_eks_solve(
@@ -118,7 +118,7 @@ def coarse_ekf_init(*, f, y0, order, ts, fact=10):
 def coarse_rk_init(*, f, y0, order, ts, fact=10):
     coarse_dt = _get_coarse_dt(ts) / fact
 
-    tspan = (ts[0], ts[1])
+    tspan = (ts[0], ts[-1])
     from pof.diffrax import solve_diffrax
 
     sol_init = solve_diffrax(f, y0, tspan, dt=coarse_dt)
