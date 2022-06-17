@@ -18,6 +18,7 @@ from pof.observations import *
 from pof.parallel_filtsmooth import linear_filtsmooth
 from pof.transitions import *
 from pof.utils import MVNSqrt, tria
+import pof.itertors
 
 fs = linear_filtsmooth
 if jax.lib.xla_bridge.get_backend().platform == "gpu":
@@ -65,118 +66,28 @@ def calibrate(out, dtm, ssq):
     return out, dtm
 
 
-def ieks_iterator(dtm, om, x0, init_traj, maxiter=250):
+def ieks_iterator(dtm, om, x0, init_traj, maxiter=500):
     bar = trange(maxiter)
-
-    dom = lom(om, init_traj)
-    out, nll, obj, ssq = fs(x0, dtm, dom)
-
-    bar.set_description(f"[OBJ={obj:.4e} NLL={nll:.4e} ssq={ssq:.4e}]")
-    bar.update(1)
-    yield out, nll, obj
-    for _ in bar:
-
-        nll_old, obj_old, mean_old = nll, obj, out.mean
-
-        dom = lom(om, jax.tree_map(lambda l: l[1:], out))
-        out, nll, obj, ssq = fs(x0, dtm, dom)
-
-        bar.set_description(f"[OBJ={obj:.4e} NLL={nll:.4e} ssq={ssq:.4e}]")
-
+    iterator = pof.iterators.ieks_iterator(dtm, om, x0, init_traj)
+    for _, (out, nll, obj) in zip(bar, iterator):
         yield out, nll, obj
-        if (
-            (jnp.isclose(nll_old, nll) and jnp.isclose(obj_old, obj))
-            or jnp.isnan(nll)
-            or jnp.isnan(obj)
-        ):
-            bar.close()
-            break
+        bar.set_description(f"[OBJ={obj:.4e} NLL={nll:.4e}]")
 
 
-def lm_ieks_iterator(dtm, om, x0, init_traj, maxiter=250):
-    reg, nu = 1e0, 10.0
+def lm_ieks_iterator(dtm, om, x0, init_traj, maxiter=500):
     bar = trange(maxiter)
-
-    dom = lom_reg(om, init_traj, reg)
-    out, nll, obj, ssq = fs(x0, dtm, dom)
-
-    bar.set_description(f"[OBJ={obj:.4e} NLL={nll:.4e} ssq={ssq:.4e} reg={reg:.4e}]")
-    bar.update(1)
-    yield out, nll, obj
-    for _ in bar:
-
-        nll_old, obj_old, out_old = nll, obj, out
-
-        dom = lom_reg(om, jax.tree_map(lambda l: l[1:], out), reg)
-        out, nll, obj, ssq = fs(x0, dtm, dom)
-
-        if obj < obj_old:
-            reg /= nu
-        else:
-            reg *= nu
-            out = out_old
-
-        bar.set_description(
-            f"[OBJ={obj:.4e} NLL={nll:.4e} ssq={ssq:.4e} reg={reg:.4e}]"
-        )
-
+    iterator = pof.iterators.lm_ieks_iterator(dtm, om, x0, init_traj)
+    for _, (out, nll, obj, reg) in zip(bar, iterator):
         yield out, nll, obj
-        if (
-            (jnp.isclose(nll_old, nll) and jnp.isclose(obj_old, obj))
-            or jnp.isnan(nll)
-            or jnp.isnan(obj)
-        ):
-            bar.close()
-            break
+        bar.set_description(f"[OBJ={obj:.4e} NLL={nll:.4e} reg={reg:.4e}]")
 
 
-def qpm_ieks_iterator(dtm, om, x0, init_traj, maxiter=250):
-    reg, fact = 1e-3, 1e6
+def qpm_ieks_iterator(dtm, om, x0, init_traj, maxiter=500):
     bar = trange(maxiter)
-
-    init_covs = init_traj.chol
-
-    dom = lom(om, init_traj)
-    dom = jax.vmap(AffineModel)(
-        dom.H,
-        dom.b,
-        # jax.vmap(lambda cR: reg * jnp.eye(*cR.shape))(dom.cholR),
-        jax.vmap(lambda H, cP: reg * tria(H @ cP))(dom.H, init_covs),
-    )
-    out, nll, obj, ssq = fs(x0, dtm, dom)
-
-    bar.set_description(f"[OBJ={obj:.4e} NLL={nll:.4e} ssq={ssq:.4e} reg={reg:.4e}]")
-    bar.update(1)
-    yield out, nll, obj
-    for _ in bar:
-
-        nll_old, obj_old, out_old = nll, obj, out
-
-        dom = lom(om, jax.tree_map(lambda l: l[1:], out))
-        dom = jax.vmap(AffineModel)(
-            dom.H,
-            dom.b,
-            # jax.vmap(lambda cR: reg * jnp.eye(*cR.shape))(dom.cholR),
-            jax.vmap(lambda H, cP: reg * tria(H @ cP))(dom.H, init_covs),
-        )
-        out, nll, obj, ssq = fs(x0, dtm, dom)
-
-        bar.set_description(
-            f"[OBJ={obj:.4e} NLL={nll:.4e} ssq={ssq:.4e} reg={reg:.4e}]"
-        )
-
+    iterator = pof.iterators.qpm_ieks_iterator(dtm, om, x0, init_traj)
+    for _, (out, nll, obj, reg) in zip(bar, iterator):
         yield out, nll, obj
-        # if (
-        #     (jnp.isclose(nll_old, nll) and jnp.isclose(obj_old, obj))
-        #     or jnp.isnan(nll)
-        #     or jnp.isnan(obj)
-        # ):
-        if jnp.isclose(obj_old - nll_old, obj - nll):
-            if reg < 1e-15:
-                bar.close()
-                break
-            else:
-                reg /= fact
+        bar.set_description(f"[OBJ={obj:.4e} NLL={nll:.4e} reg={reg:.4e}]")
 
 
 def evaluate(init_traj, setup, ys_true, opt="ieks"):
@@ -221,7 +132,7 @@ def _precondition(setup, raw_states):
 def constant_init(setup):
     ivp = setup["ivp"]
     raw_traj = init.constant_init(
-        y0=ivp.y0, f=ivp.f, order=setup["order"], ts=setup["ts"]
+        y0=ivp.y0, f=ivp.f, order=setup["order"], ts=setup["ts"][1:]
     )
     return _precondition(setup, raw_traj)
 
@@ -289,25 +200,25 @@ def run_exp(*, ivp, dts, order, probname, inits, opt="ieks"):
 
 if __name__ == "__main__":
     INITS = (
-        # ("constant", constant_init),
+        ("constant", constant_init),
         ("prior", prior_init),
-        # ("updated_prior", updated_prior_init),
+        ("updated_prior", updated_prior_init),
         ("coarse_dopri5", coarse_solver_init),
         ("coarse_ekf", coarse_ekf_init),
     )
-    # ORDERS = (1, 2, 3, 5)
-    ORDERS = (1, 2)
+    ORDERS = (1, 2, 3, 5)
+    # ORDERS = (5,)
     IVP, PROBNAME = lotkavolterra(), "lotkavolterra"
     # IVP, PROBNAME = logistic(), "logistic"
     DTS = (
         # (1e-0, "1e-0"),
-        (1e-1, "1e-1"),
-        (1e-2, "1e-2"),
+        # (1e-1, "1e-1"),
+        # (1e-2, "1e-2"),
         (1e-3, "1e-3"),
         # (1e-4, "1e-4"),
     )
     # OPTS = ("ieks", "qpm")
-    OPTS = ("ieks",)
+    OPTS = ("qpm",)
 
     for (order, opt) in itertools.product(ORDERS, OPTS):
         run_exp(ivp=IVP, dts=DTS, order=order, probname=PROBNAME, opt=opt, inits=INITS)
