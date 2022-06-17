@@ -30,3 +30,14 @@ def lotkavolterra(t0=0.0, tmax=7, y0=None, p=None):
         )
 
     return tornadox.ivp.InitialValueProblem(f=f, t0=t0, tmax=tmax, y0=y0)
+
+
+def vanderpol(t0=0.0, tmax=6.3, y0=None, stiffness_constant=1e1):
+
+    y0 = y0 or jnp.array([2.0, 0.0])
+
+    @jax.jit
+    def f_vanderpol(_, Y, mu=stiffness_constant):
+        return jnp.array([Y[1], mu * ((1.0 - Y[0] ** 2) * Y[1] - Y[0])])
+
+    return tornadox.ivp.InitialValueProblem(f=f_vanderpol, t0=t0, tmax=tmax, y0=y0)

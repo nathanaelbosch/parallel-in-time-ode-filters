@@ -18,7 +18,7 @@ from pof.observations import *
 from pof.parallel_filtsmooth import linear_filtsmooth
 from pof.transitions import *
 from pof.utils import MVNSqrt, tria
-import pof.itertors
+import pof.iterators
 
 fs = linear_filtsmooth
 if jax.lib.xla_bridge.get_backend().platform == "gpu":
@@ -84,7 +84,9 @@ def lm_ieks_iterator(dtm, om, x0, init_traj, maxiter=500):
 
 def qpm_ieks_iterator(dtm, om, x0, init_traj, maxiter=500):
     bar = trange(maxiter)
-    iterator = pof.iterators.qpm_ieks_iterator(dtm, om, x0, init_traj)
+    iterator = pof.iterators.qpm_ieks_iterator(
+        dtm, om, x0, init_traj, reg_start=1e0, reg_final=1e-20, steps=20
+    )
     for _, (out, nll, obj, reg) in zip(bar, iterator):
         yield out, nll, obj
         bar.set_description(f"[OBJ={obj:.4e} NLL={nll:.4e} reg={reg:.4e}]")
@@ -212,8 +214,8 @@ if __name__ == "__main__":
     # IVP, PROBNAME = logistic(), "logistic"
     DTS = (
         # (1e-0, "1e-0"),
-        # (1e-1, "1e-1"),
-        # (1e-2, "1e-2"),
+        (1e-1, "1e-1"),
+        (1e-2, "1e-2"),
         (1e-3, "1e-3"),
         # (1e-4, "1e-4"),
     )

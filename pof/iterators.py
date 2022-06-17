@@ -7,6 +7,8 @@ from pof.parallel_filtsmooth import linear_filtsmooth
 from pof.observations import linearize, linearize_regularized
 
 fs = linear_filtsmooth
+if jax.lib.xla_bridge.get_backend().platform == "gpu":
+    fs = jax.jit(linear_filtsmooth)
 lom = jax.jit(jax.vmap(linearize, in_axes=[None, 0]), static_argnums=(0,))
 lom_reg = jax.jit(
     jax.vmap(linearize_regularized, in_axes=[None, 0, None]), static_argnums=(0,)
@@ -36,15 +38,24 @@ def ieks_iterator(dtm, om, x0, init_traj):
             break
 
 
-def qpm_ieks_iterator(dtm, om, x0, init_traj):
+def qpm_ieks_iterator(
+    dtm,
+    om,
+    x0,
+    init_traj,
+    reg_start=1e0,
+    reg_final=1e-20,
+    steps=20,
+    tau_start=None,
+    tau_final=None,
+):
     N = dtm.F.shape[0]
 
     dom = lom(om, init_traj)
 
-    reg_start, reg_final, steps = 1e10, 1e-10, 20
     reg_fact = (reg_final / reg_start) ** (1 / steps)
-    # tau_start, tau_final = 1e10, 1e-10
-    tau_start, tau_final = jnp.sqrt(reg_start), jnp.sqrt(reg_final)
+    if tau_start is None:
+        tau_start, tau_final = jnp.sqrt(reg_start), jnp.sqrt(reg_final)
     tau_fact = (tau_final / tau_start) ** (1 / steps)
     reg, tau = reg_start, tau_start
 
@@ -69,8 +80,10 @@ def qpm_ieks_iterator(dtm, om, x0, init_traj):
         yield out, nll, obj, reg
 
         if jnp.isclose(obj_old - nll_old, obj - nll, rtol=tau):
-            if reg < reg_final:
+            if reg == 0:
                 break
+            elif reg < reg_final:
+                reg = 0.0
             else:
                 reg *= reg_fact
                 tau *= tau_fact
