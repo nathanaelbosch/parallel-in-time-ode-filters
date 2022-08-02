@@ -5,6 +5,7 @@ from tqdm import trange
 import matplotlib.pyplot as plt
 
 import pof
+from pof.diffrax import solve_diffrax
 import pof.initialization as init
 from pof.ivp import *
 from pof.observations import *
@@ -55,7 +56,17 @@ def ieks_iterator(dtm, om, x0, init_traj, maxiter=250):
 
 def qpm_ieks_iterator(dtm, om, x0, init_traj, maxiter=500):
     bar = trange(maxiter)
-    iterator = pof.iterators.qpm_ieks_iterator(dtm, om, x0, init_traj)
+    iterator = pof.iterators.qpm_ieks_iterator(
+        dtm,
+        om,
+        x0,
+        init_traj,
+        reg_start=1e20,
+        reg_final=1e-20,
+        steps=100,
+        # tau_start=1e0,
+        # tau_final=1e-10,
+    )
     for _, (out, nll, obj, reg) in zip(bar, iterator):
         yield out, nll, obj
         bar.set_description(f"[OBJ={obj:.4e} NLL={nll:.4e} reg={reg:.4}]")
@@ -77,12 +88,14 @@ def coarse_solver_init(setup):
     return _precondition(setup, raw_traj)
 
 
-ivp = lotkavolterra()
-dt = 1e-2
-order = 2
+ivp = vanderpol()
+dt = 1e-3
+order = 3
 setup = set_up(ivp, dt, order=order)
+sol_true = solve_diffrax(ivp.f, ivp.y0, ivp.t_span, atol=1e-20, rtol=1e-20)
+ys_true = jax.vmap(sol_true.evaluate)(setup["ts"])
 init_traj = prior_init(setup)
-ieks_iter = qpm_ieks_iterator(setup["dtm"], setup["om"], setup["x0"], init_traj)
+ieks_iter = ieks_iterator(setup["dtm"], setup["om"], setup["x0"], init_traj)
 
 project = lambda states: jnp.dot(setup["E0"], states.mean.T).T
 
@@ -94,10 +107,13 @@ camera = Camera(fig)
 for (k, (states, nll, obj)) in enumerate(ieks_iter):
     ys = project(states)
     d = ys.shape[1]
+    plt.plot(setup["ts"], ys_true, "--k")
     for i in range(d):
         plt.plot(setup["ts"], ys[:, i], color=f"C{i}")
-    plt.ylim(-2, 10)
+    # plt.ylim(-2, 10)
+    plt.ylim(-5, 5)
     camera.snap()
 
+# animation = camera.animate()
+# animation.save("qpm_ieks_vanderpol.mp4")
 animation = camera.animate()
-# animation.save("ieks_lv_solve.mp4")

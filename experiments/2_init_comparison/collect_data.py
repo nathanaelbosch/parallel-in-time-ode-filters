@@ -85,7 +85,15 @@ def lm_ieks_iterator(dtm, om, x0, init_traj, maxiter=500):
 def qpm_ieks_iterator(dtm, om, x0, init_traj, maxiter=500):
     bar = trange(maxiter)
     iterator = pof.iterators.qpm_ieks_iterator(
-        dtm, om, x0, init_traj, reg_start=1e0, reg_final=1e-20, steps=20
+        dtm,
+        om,
+        x0,
+        init_traj,
+        reg_start=1e10,
+        reg_final=1e-10,
+        steps=20,
+        tau_start=1e5,
+        tau_final=1e-5,
     )
     for _, (out, nll, obj, reg) in zip(bar, iterator):
         yield out, nll, obj
