@@ -27,11 +27,17 @@ colored = (
     + cycler("marker", ["*", "^"])
     + cycler("linestyle", ["-", "-"])
 )
+colored2 = (
+    cycler("color", ["g", "y"])
+    + cycler("marker", ["*", "^"])
+    + cycler("linestyle", ["-", "-"])
+)
 monochrome = cycler("color", ["gray"]) * (
     cycler("linestyle", [(0, (3, 1, 1, 1)), "--", ":", "-.", (0, (3, 1, 1, 1, 1, 1))])
     + cycler("marker", ["p", "P", "X", "d", "s"])
 )
-cycle = colored.concat(monochrome)
+# cycle = colored.concat(monochrome)
+cycle = colored.concat(colored2).concat(monochrome)
 
 filenames = ("logistic", "lotkavolterra")
 titles = ("Logistic equation", "Lotka-Volterra")
@@ -41,7 +47,8 @@ for i, ax in enumerate(axes):
     ax.set_prop_cycle(cycle)
 
     folder = Path("experiments/1_simple_runtime_benchmark/")
-    df = pd.read_csv(folder / f"{filenames[i]}.csv", index_col=0)
+    print(f"{i}")
+    df = pd.read_csv(folder / f"{filenames[i]}_dev.csv", index_col=0)
     x = "N"
     ax.plot(
         df[x], df.pEKS, label="parallel EKS", markersize=12, linewidth=4, zorder=101
@@ -49,10 +56,21 @@ for i, ax in enumerate(axes):
     ax.plot(
         df[x], df.sEKS, label="sequential EKS", markersize=10, linewidth=4, zorder=100
     )
+    ax.plot(
+        df[x], df.pEKSq, label="parallel EKS QR", markersize=12, linewidth=4, zorder=101
+    )
+    ax.plot(
+        df[x],
+        df.sEKSq,
+        label="sequential EKS QR",
+        markersize=10,
+        linewidth=4,
+        zorder=100,
+    )
 
     ref_alpha = 1
     ax.plot(df[x], df.dp5, label="Dopri5 (diffrax)", alpha=ref_alpha)
-    ax.plot(df[x], df.kv5, label="Kvaerno5 (diffrax)", alpha=ref_alpha)
+    # ax.plot(df[x], df.kv5, label="Kvaerno5 (diffrax)", alpha=ref_alpha)
     ax.plot(df[x], df.rk45, label="RK45 (scipy)", alpha=ref_alpha)
     ax.plot(df[x], df.lsoda, label="LSODA (scipy)", alpha=ref_alpha)
 
@@ -70,4 +88,4 @@ axes[1].set_xlabel("Number of gridpoints")
 axes[0].set_ylabel("Runtime [s]")
 axes[0].legend()
 
-fig.savefig(folder / f"plot.pdf")
+fig.savefig(folder / f"plot_qr.pdf")

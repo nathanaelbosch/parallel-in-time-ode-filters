@@ -10,7 +10,7 @@ import probnum
 from scipy.integrate import solve_ivp
 
 from pof.convenience import discretize_transitions, linearize_observation_model
-from pof.initialization import get_initial_trajectory, taylor_mode_init
+from pof.initialization import constant_init, taylor_mode_init
 from pof.ivp import logistic, lotkavolterra
 from pof.parallel_filtsmooth import linear_filtsmooth
 from pof.sequential_filtsmooth import filtsmooth
@@ -21,7 +21,7 @@ def parallel_eks(f, y0, ts, order):
     iwp, om = make_continuous_models(f, y0, order)
     dtm = discretize_transitions(iwp, ts)
     x0 = taylor_mode_init(f, y0, order)
-    traj = get_initial_trajectory(y0, f, order, N=ts.shape[0])
+    traj = constant_init(y0=y0, f=f, order=order, ts=ts)
     dom = linearize_observation_model(om, jax.tree_map(lambda l: l[1:], traj))
     out, _, _, _ = linear_filtsmooth(x0, dtm, dom)
     return out.mean, 0
@@ -31,7 +31,7 @@ def sequential_eks(f, y0, ts, order):
     iwp, om = make_continuous_models(f, y0, order)
     dtm = discretize_transitions(iwp, ts)
     x0 = taylor_mode_init(f, y0, order)
-    traj = get_initial_trajectory(y0, f, order, N=ts.shape[0])
+    traj = constant_init(y0=y0, f=f, order=order, ts=ts)
     out, _ = filtsmooth(x0, dtm, om)
     return out.mean, 0
 
@@ -114,16 +114,18 @@ def block_and_return_state(f):
     return f2
 
 
-for ivp, name in ((logistic(), "logistic"), (lotkavolterra(), "lotkavolterra")):
+for ivp, name in (
+    (logistic(), "logistic"),
+    (lotkavolterra(), "lotkavolterra"),
+):
     print(f"ivp={name}")
     f, y0 = ivp.f, ivp.y0
-    if name == "logistic":
-        continue
 
     peks = jax.jit(lambda ts: parallel_eks(f, y0, ts, order=4))
     seks = jax.jit(lambda ts: sequential_eks(f, y0, ts, order=4))
     dp5 = jax.jit(lambda ts: solve_diffrax(f, y0, ts, solver=diffrax.Dopri5()))
-    kv5 = jax.jit(lambda ts: solve_diffrax(f, y0, ts, solver=diffrax.Kvaerno5()))
+    Kv5 = diffrax.Kvaerno5(diffrax.NewtonNonlinearSolver(rtol=1e-3, atol=1e-6))
+    kv5 = jax.jit(lambda ts: solve_diffrax(f, y0, ts, solver=Kv5))
     rk45 = lambda ts: solve_scipy(f, y0, ts, "RK45")[1]
     lsoda = lambda ts: solve_scipy(f, y0, ts, "LSODA")[1]
     methods = {
@@ -141,4 +143,4 @@ for ivp, name in ((logistic(), "logistic"), (lotkavolterra(), "lotkavolterra")):
     df = pd.DataFrame(res)
     df["N"] = (ivp.tmax - ivp.t0) / df.dt
 
-    df.to_csv(f"experiments/1_simple_runtime_benchmark/{name}_dev.csv")
+    df.to_csv(f"experiments/1_simple_runtime_benchmark/{name}.csv")

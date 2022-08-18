@@ -37,7 +37,9 @@ def tria(A):
 
 
 def qr(A: jnp.ndarray):
-    return _qr(A)
+    # return _qr(A)
+    # return jlinalg.qr(A, mode="economic")[1]
+    return jnp.linalg.qr(A, mode="r")
 
 
 @partial(jax.jit, static_argnames="return_q")
@@ -71,9 +73,9 @@ def _householder(a):
     s = jnp.sum(a[1:] ** 2)
 
     v = a
-    t = (alpha**2 + s) ** 0.5
+    t = (alpha ** 2 + s) ** 0.5
     v0 = jax.lax.cond(alpha <= 0, lambda _: alpha - t, lambda _: -s / (alpha + t), None)
-    tau = 2 * v0**2 / (s + v0**2)
+    tau = 2 * v0 ** 2 / (s + v0 ** 2)
     v = v / v0
     v = v.at[0].set(1.0)
 
