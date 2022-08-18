@@ -124,7 +124,7 @@ for ivp, name in (
     peks = jax.jit(lambda ts: parallel_eks(f, y0, ts, order=4))
     seks = jax.jit(lambda ts: sequential_eks(f, y0, ts, order=4))
     dp5 = jax.jit(lambda ts: solve_diffrax(f, y0, ts, solver=diffrax.Dopri5()))
-    Kv5 = diffrax.Kvaerno5(diffrax.NewtonNonlinearSolver(rtol=1e-3, atol=1e-6))
+    Kv5 = diffrax.Kvaerno5(diffrax.NewtonNonlinearSolver(rtol=1e-6, atol=1e-9))
     kv5 = jax.jit(lambda ts: solve_diffrax(f, y0, ts, solver=Kv5))
     rk45 = lambda ts: solve_scipy(f, y0, ts, "RK45")[1]
     lsoda = lambda ts: solve_scipy(f, y0, ts, "LSODA")[1]
@@ -133,7 +133,7 @@ for ivp, name in (
         "sEKS": block_and_return_state(seks),
         "dp5": block_and_return_state(dp5),
         "kv5": block_and_return_state(kv5),
-        "rk45": rk45,
+        # "rk45": rk45,
         "lsoda": lsoda,
         # "probnumek0": lambda ts: solve_probnum(f, y0, ts)[1],
     }
