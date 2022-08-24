@@ -87,7 +87,7 @@ def timeit(f, N):
 def benchmark(methods, N=10):
     results = defaultdict(lambda: [])
 
-    dts = 2.0 ** -np.arange(0, 12)
+    dts = 2.0 ** -np.arange(0, 15)
     for dt in dts:
         print(f"dt={dt}")
         results["dt"].append(dt)
@@ -131,10 +131,10 @@ for ivp, name in (
     methods = {
         "pEKS": block_and_return_state(peks),
         "sEKS": block_and_return_state(seks),
-        "dp5": block_and_return_state(dp5),
-        "kv5": block_and_return_state(kv5),
+        # "dp5": block_and_return_state(dp5),
+        # "kv5": block_and_return_state(kv5),
         # "rk45": rk45,
-        "lsoda": lsoda,
+        # "lsoda": lsoda,
         # "probnumek0": lambda ts: solve_probnum(f, y0, ts)[1],
     }
 
@@ -143,4 +143,4 @@ for ivp, name in (
     df = pd.DataFrame(res)
     df["N"] = (ivp.tmax - ivp.t0) / df.dt
 
-    df.to_csv(f"experiments/1_simple_runtime_benchmark/{name}.csv")
+    df.to_csv(f"experiments/1_simple_runtime_benchmark/{name}_filter_only.csv")
