@@ -31,7 +31,8 @@ def ieks_iterator(dtm, om, x0, init_traj):
         yield out, nll, obj
 
         if (
-            (jnp.isclose(nll_old, nll) and jnp.isclose(obj_old, obj))
+            # (jnp.isclose(nll_old, nll) and jnp.isclose(obj_old, obj))
+            jnp.isclose(obj_old, obj)
             or jnp.isnan(nll)
             or jnp.isnan(obj)
         ):
@@ -80,21 +81,23 @@ def qpm_ieks_iterator(
         yield out, nll, obj, reg
 
         if jnp.isclose(obj_old - nll_old, obj - nll, rtol=tau):
+            reg *= reg_fact
+            tau *= tau_fact
             if reg == 0:
                 break
             elif reg < reg_final:
                 reg = 0.0
-            else:
-                reg *= reg_fact
-                tau *= tau_fact
+                tau = min(tau_final, 1e-5)
+
+        if jnp.isnan(nll) or jnp.isnan(obj):
+            break
 
 
-def lm_ieks_iterator(dtm, om, x0, init_traj):
-    reg, nu = 1e0, 10.0
+def lm_ieks_iterator(dtm, om, x0, init_traj, reg=1e0, nu=10.0):
 
     dom = lom_reg(om, init_traj, reg)
     out, nll, obj, ssq = fs(x0, dtm, dom)
-    yield out, nll, obj
+    yield out, nll, obj, reg
 
     while True:
 
@@ -103,13 +106,13 @@ def lm_ieks_iterator(dtm, om, x0, init_traj):
         dom = lom_reg(om, jax.tree_map(lambda l: l[1:], out), reg)
         out, nll, obj, ssq = fs(x0, dtm, dom)
 
-        if obj < obj_old:
-            reg /= nu
-        else:
-            reg *= nu
-            out = out_old
+        # if obj < obj_old:
+        #     reg /= nu
+        # else:
+        #     reg *= nu
+        #     out = out_old
 
-        yield out, nll, obj
+        yield out, nll, obj, reg
 
         if (
             (jnp.isclose(nll_old, nll) and jnp.isclose(obj_old, obj))

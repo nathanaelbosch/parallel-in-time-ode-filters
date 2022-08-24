@@ -97,14 +97,16 @@ def _get_coarse_dt(fine_ts):
     return dt
 
 
-def coarse_ekf_init(*, f, y0, order, ts, fact=10):
-    coarse_dt = _get_coarse_dt(ts) / fact
+def coarse_ekf_init(*, f, y0, order, ts, N=10):
+    # coarse_dt = _get_coarse_dt(ts) / factt
+    coarse_ts = jnp.linspace(ts[0], ts[-1], N)
+    coarse_dt = coarse_ts[1] - coarse_ts[0]
 
-    tspan = (ts[0], ts[-1])
+    # tspan = (ts[0], ts[-1])
     from pof.solver import sequential_eks_solve
 
     _out, _ts, _ = sequential_eks_solve(
-        f, y0, tspan, dt=coarse_dt, order=order, return_full_states=True
+        f, y0, coarse_ts, order=order, return_full_states=True
     )
 
     idxs = jnp.floor(ts / coarse_dt).astype(int)

@@ -29,6 +29,8 @@ lom_reg = jax.jit(
     jax.vmap(linearize_regularized, in_axes=[None, 0, None]), static_argnums=(0,)
 )
 
+MAXITER = 500
+
 
 def set_up(ivp, dt, order):
     ts = jnp.arange(ivp.t0, ivp.tmax + dt, dt)
@@ -66,7 +68,7 @@ def calibrate(out, dtm, ssq):
     return out, dtm
 
 
-def ieks_iterator(dtm, om, x0, init_traj, maxiter=500):
+def ieks_iterator(dtm, om, x0, init_traj, maxiter=MAXITER):
     bar = trange(maxiter)
     iterator = pof.iterators.ieks_iterator(dtm, om, x0, init_traj)
     for _, (out, nll, obj) in zip(bar, iterator):
@@ -74,7 +76,7 @@ def ieks_iterator(dtm, om, x0, init_traj, maxiter=500):
         bar.set_description(f"[OBJ={obj:.4e} NLL={nll:.4e}]")
 
 
-def lm_ieks_iterator(dtm, om, x0, init_traj, maxiter=500):
+def lm_ieks_iterator(dtm, om, x0, init_traj, maxiter=MAXITER):
     bar = trange(maxiter)
     iterator = pof.iterators.lm_ieks_iterator(dtm, om, x0, init_traj)
     for _, (out, nll, obj, reg) in zip(bar, iterator):
@@ -82,13 +84,22 @@ def lm_ieks_iterator(dtm, om, x0, init_traj, maxiter=500):
         bar.set_description(f"[OBJ={obj:.4e} NLL={nll:.4e} reg={reg:.4e}]")
 
 
-def qpm_ieks_iterator(dtm, om, x0, init_traj, maxiter=500):
+def qpm_ieks_iterator(dtm, om, x0, init_traj, maxiter=MAXITER):
     bar = trange(maxiter)
     iterator = pof.iterators.qpm_ieks_iterator(
         dtm,
         om,
         x0,
         init_traj,
+        #
+        # WIP for VdP:
+        # reg_start=1e20,
+        # reg_final=1e-20,
+        # steps=100,
+        # tau_start=1e5,
+        # tau_final=1e-2,
+        #
+        # Best so far:
         reg_start=1e10,
         reg_final=1e-10,
         steps=20,
@@ -127,7 +138,7 @@ def evaluate(init_traj, setup, ys_true, opt="ieks"):
 def get_mse(out, E0, ys_true):
     ys = jnp.dot(E0, out.T).T
     es = ys - ys_true
-    return jax.vmap(lambda e: jnp.sqrt(jnp.mean(e**2)), in_axes=0)(es).mean()
+    return jax.vmap(lambda e: jnp.sqrt(jnp.mean(e ** 2)), in_axes=0)(es).mean()
 
 
 ########################################################################################
@@ -157,7 +168,7 @@ def updated_prior_init(setup):
 
 def coarse_solver_init(setup):
     ivp, order, ts = setup["ivp"], setup["order"], setup["ts"]
-    raw_traj = init.coarse_rk_init(f=ivp.f, y0=ivp.y0, order=order, ts=ts[1:])
+    raw_traj = init.coarse_rk_init(f=ivp.f, y0=ivp.y0, order=order, ts=ts[1:], fact=100)
     return _precondition(setup, raw_traj)
 
 
@@ -184,15 +195,14 @@ def merge_dataframes(dfs, names):
     return df
 
 
-def run_exp(*, ivp, dts, order, probname, inits, opt="ieks"):
-    sol_true = solve_diffrax(ivp.f, ivp.y0, ivp.t_span, atol=1e-20, rtol=1e-20)
+def run_exp(*, ivp, dts, order, probname, inits, opt="ieks", sol_true):
     for dt, dt_str in dts:
         setup = set_up(ivp, dt, order=order)
         ys_true = jax.vmap(sol_true.evaluate)(setup["ts"])
 
         dfs = {}
         for n, initf in inits:
-            print(f"initialization: {n}")
+            print(f"initialization: {n}; optimizer: {opt}")
             traj = initf(setup)
             res, k = evaluate(traj, setup, ys_true, opt=opt)
             df = pd.DataFrame(res)
@@ -210,25 +220,39 @@ def run_exp(*, ivp, dts, order, probname, inits, opt="ieks"):
 
 if __name__ == "__main__":
     INITS = (
-        ("constant", constant_init),
+        # ("constant", constant_init),
         ("prior", prior_init),
-        ("updated_prior", updated_prior_init),
-        ("coarse_dopri5", coarse_solver_init),
+        # ("updated_prior", updated_prior_init),
+        # ("coarse_dopri5", coarse_solver_init),
         ("coarse_ekf", coarse_ekf_init),
     )
-    ORDERS = (1, 2, 3, 5)
-    # ORDERS = (5,)
-    IVP, PROBNAME = lotkavolterra(), "lotkavolterra"
-    # IVP, PROBNAME = logistic(), "logistic"
+    ORDERS = (
+        # 1,
+        2,
+        3,
+        5,
+    )
     DTS = (
         # (1e-0, "1e-0"),
-        (1e-1, "1e-1"),
+        # (1e-1, "1e-1"),
         (1e-2, "1e-2"),
         (1e-3, "1e-3"),
         # (1e-4, "1e-4"),
     )
-    # OPTS = ("ieks", "qpm")
-    OPTS = ("qpm",)
+    OPTS = ("ieks", "qpm")
+    for IVP, PROBNAME in (
+        (lotkavolterra(), "lotkavolterra"),
+        (vanderpol(), "vanderpol"),
+    ):
+        sol_true = solve_diffrax(IVP.f, IVP.y0, IVP.t_span, atol=1e-20, rtol=1e-20)
 
-    for (order, opt) in itertools.product(ORDERS, OPTS):
-        run_exp(ivp=IVP, dts=DTS, order=order, probname=PROBNAME, opt=opt, inits=INITS)
+        for (order, opt) in itertools.product(ORDERS, OPTS):
+            run_exp(
+                ivp=IVP,
+                dts=DTS,
+                order=order,
+                probname=PROBNAME,
+                opt=opt,
+                inits=INITS,
+                sol_true=sol_true,
+            )
