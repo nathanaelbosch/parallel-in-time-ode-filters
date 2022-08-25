@@ -76,7 +76,7 @@ def solve_diffrax(f, y0, ts, solver):
 
 
 def remove_infs(ys):
-    idxs = jnp.isfinite(ys)
+    idxs = jnp.isfinite(ys).all(axis=1)
     return ys[idxs]
 
 
