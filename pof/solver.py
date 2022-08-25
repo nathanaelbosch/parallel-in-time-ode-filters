@@ -89,9 +89,9 @@ def solve(*, f, y0, ts, order, coarse_N=10):
     states, nll, obj, _, _, k = val = jax.lax.while_loop(cond, body, val)
 
     info_dict = {"iterations": k, "nll": nll, "obj": obj}
-    states = jax.vmap(_gmul, in_axes=[None, 0])(E0, states)
+    ys = jax.vmap(_gmul, in_axes=[None, 0])(E0, states)
 
-    return states, info_dict
+    return ys, info_dict
 
 
 @partial(jax.jit, static_argnames="om")
