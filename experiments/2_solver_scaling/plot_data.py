@@ -20,7 +20,7 @@ plt.rcParams.update(
     }
 )
 
-fig, axes = plt.subplots(1, 2, sharey=True)
+fig, axes = plt.subplots(2, 2, sharex="col", sharey="row")
 
 colored = (
     cycler("color", ["r", "b"])
@@ -39,66 +39,85 @@ monochrome = cycler("color", ["gray"]) * (
 )
 cycle = colored.concat(monochrome)
 
-filenames = ("logistic", "lotkavolterra")
-titles = ("Logistic equation", "Lotka-Volterra")
+# ivp_names = ("logistic", "lotkavolterra")
+ivp_names = ("fitzhughnagumo", "fitzhughnagumo")
+# titles = ("Logistic equation", "Lotka-Volterra")
+titles = ("FitzHugh-Nagumo", "FitzHugh-Nagumo")
 letters = ("a", "b")
 
-for i, ax in enumerate(axes):
-    ax.set_prop_cycle(cycle)
+for i, ivpname in enumerate(ivp_names):
+    for j, yname in enumerate(("time", "err")):
+        ax = axes[j, i]
+        ax.set_prop_cycle(cycle)
 
-    folder = Path("experiments/2_solver_scaling/")
-    df = pd.read_csv(folder / f"{filenames[i]}.csv", index_col=0)
-    x = "N"
-    ax.plot(
-        df[x], df.sEKS, label="sequential EKS", markersize=10, linewidth=4, zorder=100
-    )
-    ax.plot(
-        df[x], df.pEKS, label="parallel EKS", markersize=12, linewidth=4, zorder=101
-    )
-    # ax.plot(df[x], df.pEKSq, label="parallel EKS QR", markersize=12, linewidth=4, zorder=101)
-    # ax.plot(df[x], df.sEKSq, label="sequential EKS QR", markersize=10, linewidth=4, zorder=100,)
+        folder = Path("experiments/2_solver_scaling/")
+        df = pd.read_csv(folder / f"{ivpname}.csv", index_col=0)
+        x = "N"
+        ax.plot(
+            df[x],
+            df[f"sEKS_{yname}"],
+            label="sequential EKS",
+            markersize=10,
+            linewidth=4,
+            zorder=100,
+        )
+        ax.plot(
+            df[x],
+            df[f"pEKS_{yname}"],
+            label="parallel EKS",
+            markersize=12,
+            linewidth=4,
+            zorder=101,
+        )
+        # ax.plot(df[x], df.pEKSq, label="parallel EKS QR", markersize=12, linewidth=4, zorder=101)
+        # ax.plot(df[x], df.sEKSq, label="sequential EKS QR", markersize=10, linewidth=4, zorder=100,)
 
-    ref_alpha = 1
-    ax.plot(df[x], df.dp5, label="Dopri5 (diffrax)", alpha=ref_alpha)
-    ax.plot(df[x], df.kv5, label="Kvaerno5 (diffrax)", alpha=ref_alpha)
-    # ax.plot(df[x], df.rk45, label="RK45 (scipy)", alpha=ref_alpha)
-    ax.plot(df[x], df.lsoda, label="LSODA (scipy)", alpha=ref_alpha)
+        ref_alpha = 1
+        ax.plot(df[x], df[f"dp5_{yname}"], label="Dopri5 (diffrax)", alpha=ref_alpha)
+        ax.plot(df[x], df[f"kv5_{yname}"], label="Kvaerno5 (diffrax)", alpha=ref_alpha)
+        # ax.plot(df[x], df.rk45, label="RK45 (scipy)", alpha=ref_alpha)
+        ax.plot(df[x], df[f"lsoda_{yname}"], label="LSODA (scipy)", alpha=ref_alpha)
 
-    ax.plot(
-        df[x],
-        df[x] / 8000 if i == 0 else df[x] / 5000,
-        label="$\propto$ N",
-        marker="",
-        alpha=0.3,
-        linewidth=10,
-        linestyle="solid",
-        color="r",
-    )
+        if yname == "time":
+            # ax.plot(
+            #     df[x],
+            #     df[x] / 8000 if i == 0 else df[x] / 5000,
+            #     label="$\propto$ N",
+            #     marker="",
+            #     alpha=0.3,
+            #     linewidth=10,
+            #     linestyle="solid",
+            #     color="r",
+            # )
 
-    ax.plot(
-        df[x],
-        np.log(df[x]) / 1300 if i == 0 else np.log(df[x]) / 800,
-        label="$\propto$ log(N)",
-        marker="",
-        alpha=0.3,
-        linewidth=10,
-        linestyle="solid",
-        color="b",
-    )
+            # ax.plot(
+            #     df[x],
+            #     np.log(df[x]) / 1300 if i == 0 else np.log(df[x]) / 800,
+            #     label="$\propto$ log(N)",
+            #     marker="",
+            #     alpha=0.3,
+            #     linewidth=10,
+            #     linestyle="solid",
+            #     color="b",
+            # )
+            pass
 
-    # if i == 0:
-    #     ax.plot(df[x], df.probnumek0, label="EK0 (probnum)", alpha=ref_alpha)
+        # if i == 0:
+        #     ax.plot(df[x], df.probnumek0, label="EK0 (probnum)", alpha=ref_alpha)
 
-    # ax.set_title("Runtimes on the logistic equation (1D)")
-    ax.set_xscale("log")
-    ax.set_yscale("log")
+        # ax.set_title("Runtimes on the logistic equation (1D)")
+        ax.set_xscale("log")
+        ax.set_yscale("log")
 
-    ax.set_title(rf"$\bf {letters[i]})$ " + rf"{titles[i]}", loc="left")
 
-axes[0].set_xlabel("Number of gridpoints")
-axes[1].set_xlabel("Number of gridpoints")
-axes[0].set_ylabel("Runtime [s]")
-axes[0].legend()
+for i in range(2):
+    axes[0, i].set_title(rf"$\bf {letters[i]})$ " + rf"{titles[i]}", loc="left")
+
+axes[1, 0].set_xlabel("Number of gridpoints")
+axes[1, 1].set_xlabel("Number of gridpoints")
+axes[0, 0].set_ylabel("Runtime [s]")
+axes[1, 0].set_ylabel("Mean squared error")
+# axes[0].legend()
 
 filename = folder / f"plot.pdf"
 fig.savefig(filename)

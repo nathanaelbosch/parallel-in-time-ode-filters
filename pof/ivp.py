@@ -41,3 +41,23 @@ def vanderpol(t0=0.0, tmax=6.3, y0=None, stiffness_constant=1e1):
         return jnp.array([Y[1], mu * ((1.0 - Y[0] ** 2) * Y[1] - Y[0])])
 
     return tornadox.ivp.InitialValueProblem(f=f_vanderpol, t0=t0, tmax=tmax, y0=y0)
+
+
+def fitzhughnagumo(t0=0.0, tmax=100.0, y0=None, p=None):
+
+    y0 = y0 or jnp.array([1.0, 1.0])
+    p = p or jnp.array([0.7, 0.8, 1 / 12.5, 0.5])
+
+    @jax.jit
+    def f(_, Y, p=p):
+        a, b, tinv, l = p
+        v = Y[0]
+        w = Y[1]
+        return jnp.array(
+            [
+                v - (v ** 3) / 3 - w + l,
+                tinv * (v + a - b * w),
+            ]
+        )
+
+    return tornadox.ivp.InitialValueProblem(f=f, t0=t0, tmax=tmax, y0=y0)

@@ -212,7 +212,7 @@ def run_exp(*, ivp, dts, order, probname, inits, opt="ieks", sol_true):
         df = merge_dataframes(dfs, [i[0] for i in inits])
 
         # Save
-        path = Path("experiments/2_init_comparison/data")
+        path = Path("experiments/old.2_init_comparison/data")
         filename = f"prob={probname}_dt={dt_str}_order={order}_opt={opt}.csv"
         df.to_csv(path / filename)
         print(f"Saved to {path / filename}")
@@ -234,15 +234,19 @@ if __name__ == "__main__":
     )
     DTS = (
         # (1e-0, "1e-0"),
-        # (1e-1, "1e-1"),
+        (1e-1, "1e-1"),
         (1e-2, "1e-2"),
         (1e-3, "1e-3"),
         # (1e-4, "1e-4"),
     )
-    OPTS = ("ieks", "qpm")
+    OPTS = (
+        "ieks",
+        # "qpm",
+    )
     for IVP, PROBNAME in (
         (lotkavolterra(), "lotkavolterra"),
         (vanderpol(), "vanderpol"),
+        (fitzhughnagumo(), "fitzhughnagumo"),
     ):
         sol_true = solve_diffrax(IVP.f, IVP.y0, IVP.t_span, atol=1e-20, rtol=1e-20)
 

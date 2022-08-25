@@ -10,6 +10,7 @@ from pof.utils import MVNSqrt
 from pof.transitions import IWP
 from pof.sequential_filtsmooth.filter import _sqrt_update, _sqrt_predict
 from pof.observations import linearize
+from pof.convenience import discretize_transitions
 
 
 def taylor_mode_init(f, y0, num_derivatives):
@@ -72,12 +73,21 @@ def classic_to_init(*, ys, order, f=None):
     return MVNSqrt(traj, cholcovs)
 
 
-def prior_init(*, x0, dtm):
+def _prior_init(*, x0, dtm):
     states_raw = jax.vmap(lambda F, QL: _sqrt_predict(F, QL, x0))(dtm.F, dtm.QL)
     states_raw = jax.tree_map(
         lambda a, b: jnp.concatenate((a[None, :], b)), x0, states_raw
     )
     return states_raw
+
+
+def prior_init(*, f, y0, order, ts):
+    x0 = taylor_mode_init(f, y0, order)
+    d = y0.shape[0]
+    iwp = IWP(num_derivatives=order, wiener_process_dimension=d)
+    dtm = discretize_transitions(iwp, steps=ts[1:])
+    states = _prior_init(x0=x0, dtm=dtm)
+    return states
 
 
 def updated_prior_init(*, x0, dtm, om):

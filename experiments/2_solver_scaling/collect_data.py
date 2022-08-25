@@ -19,7 +19,7 @@ from scipy.integrate import solve_ivp
 
 from pof.convenience import discretize_transitions, linearize_observation_model
 from pof.initialization import constant_init, taylor_mode_init, coarse_ekf_init
-from pof.ivp import logistic, lotkavolterra
+from pof.ivp import *
 from pof.parallel_filtsmooth import linear_filtsmooth
 from pof.sequential_filtsmooth import filtsmooth
 from pof.solver import make_continuous_models
@@ -30,25 +30,48 @@ import pof.diffrax
 
 ORDER = 4
 SETUPS = (
+    # {
+    #     "ivp": logistic(),
+    #     "ivp_name": "logistic",
+    #     "dts": 2.0 ** -np.arange(0, 5),
+    #     # "dts": 2.0 ** -np.arange(0, 10),
+    #     "coarse_N": 10,
+    # },
+    # {
+    #     "ivp": lotkavolterra(),
+    #     "ivp_name": "lotkavolterra",
+    #     "dts": 2.0 ** -np.arange(3, 7),
+    #     # "dts": 2.0 ** -np.arange(3, 13),
+    #     "coarse_N": 50,
+    # },
     {
-        "ivp": logistic(),
-        "ivp_name": "logistic",
-        # "dts": 2.0 ** -np.arange(0, 5),
-        "dts": 2.0 ** -np.arange(0, 10),
-        "coarse_N": 10,
+        "ivp": vanderpol,
+        "ivp_name": "vanderpol",
+        # "dts": 2.0 ** -np.arange(3, 7),
+        "dt": 0.05,
+        "tmax_range": 2.0 ** jnp.arange(0, 8),
+        # "coarse_N": 50,
     },
     {
-        "ivp": lotkavolterra(),
-        "ivp_name": "lotkavolterra",
+        "ivp": fitzhughnagumo,
+        "ivp_name": "fitzhughnagumo",
         # "dts": 2.0 ** -np.arange(3, 7),
-        "dts": 2.0 ** -np.arange(3, 13),
-        "coarse_N": 50,
+        "dt": 0.05,
+        "tmax_range": 2.0 ** jnp.arange(0, 8),
+        # "coarse_N": 50,
     },
 )
 
 
 def solve_parallel_eks(f, y0, ts, order, coarse_N=10):
-    out, info = pof.solver.solve(f=f, y0=y0, ts=ts, order=order, coarse_N=coarse_N)
+    out, info = pof.solver.solve(
+        f=f,
+        y0=y0,
+        ts=ts,
+        order=order,
+        init="constant",
+        # coarse_N=coarse_N,
+    )
     return out.mean, info, 0
 
 
@@ -112,14 +135,16 @@ def timeit(f, N):
     return min(times)
 
 
-def benchmark(methods, truesol, dts, N=3):
+def benchmark(methods, get_ivp, tmax_range, dt, N=3):
     results = defaultdict(lambda: [])
 
-    bar = tqdm.tqdm(dts, desc="DTs")
-    for dt in bar:
-        bar.write(f"dt={dt}")
-        results["dt"].append(dt)
-        ts = jnp.arange(ivp.t0, ivp.tmax + dt, dt)
+    bar = tqdm.tqdm(tmax_range, desc="tmax range")
+    for tmax in bar:
+        ivp = get_ivp(tmax=tmax)
+        truesol = get_truesol(ivp)
+        bar.write(f"tmax={tmax}, dt={dt}")
+        results["tmax"].append(tmax)
+        ts = jnp.arange(ivp.t0, tmax + dt, dt)
         bar2 = tqdm.tqdm(methods.items(), desc="Methods")
         for k, v in bar2:
             bar2.write(f"{k} start")
@@ -165,16 +190,11 @@ def get_truesol(ivp):
 
 
 for setup in tqdm.tqdm(SETUPS, desc="Setup"):
-    ivp, name = setup["ivp"], setup["ivp_name"]
+    ivp, name = setup["ivp"](), setup["ivp_name"]
     print(f"ivp={name}")
     f, y0 = ivp.f, ivp.y0
-    truesol = get_truesol(ivp)
 
-    peks = jax.jit(
-        lambda ts: solve_parallel_eks(
-            f, y0, ts, coarse_N=setup["coarse_N"], order=ORDER
-        )
-    )
+    peks = jax.jit(lambda ts: solve_parallel_eks(f, y0, ts, order=ORDER))
     # peks = jax.jit(lambda ts: pof.solver.solve(f=f, y0=y0, ts=ts, order=ORDER))
     seks = jax.jit(lambda ts: solve_sequential_eks(f, y0, ts, order=ORDER))
     dp5 = jax.jit(lambda ts: solve_diffrax(f, y0, ts, solver=diffrax.Dopri5()))
@@ -192,10 +212,10 @@ for setup in tqdm.tqdm(SETUPS, desc="Setup"):
         # "probnumek0": lambda ts: solve_probnum(f, y0, ts)[1],
     }
 
-    res = benchmark(methods, truesol, setup["dts"], N=5)
+    res = benchmark(methods, setup["ivp"], setup["tmax_range"], dt=setup["dt"], N=5)
 
     df = pd.DataFrame(res)
-    df["N"] = (ivp.tmax - ivp.t0) / df.dt
+    df["N"] = (setup["tmax_range"] - ivp.t0) / setup["dt"]
 
     filename = f"experiments/2_solver_scaling/{name}.csv"
     df.to_csv(filename)
