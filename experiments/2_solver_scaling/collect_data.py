@@ -28,9 +28,23 @@ import pof.iterators
 import pof.diffrax
 
 
-DTS = 2.0 ** -np.arange(0, 12)
-# DTS = 2.0 ** -np.arange(0, 4)
 ORDER = 4
+SETUPS = (
+    {
+        "ivp": logistic(),
+        "ivp_name": "logistic",
+        # "dts": 2.0 ** -np.arange(0, 5),
+        "dts": 2.0 ** -np.arange(0, 10),
+        "coarse_N": 10,
+    },
+    {
+        "ivp": lotkavolterra(),
+        "ivp_name": "lotkavolterra",
+        # "dts": 2.0 ** -np.arange(3, 7),
+        "dts": 2.0 ** -np.arange(3, 13),
+        "coarse_N": 50,
+    },
+)
 
 
 def solve_parallel_eks(f, y0, ts, order, coarse_N=10):
@@ -39,15 +53,10 @@ def solve_parallel_eks(f, y0, ts, order, coarse_N=10):
 
 
 def solve_sequential_eks(f, y0, ts, order):
-    iwp, om = make_continuous_models(f, y0, order)
-    dtm = discretize_transitions(iwp, ts)
-    x0 = taylor_mode_init(f, y0, order)
-    # traj = constant_init(y0=y0, f=f, order=order, ts=ts)
-    out, _ = filtsmooth(x0, dtm, om)
-
-    E0 = projection_matrix(iwp, 0)
-
-    return jax.vmap(lambda x: E0 @ x)(out.mean), 0
+    out, ts, info = pof.solver.sequential_eks_solve(
+        f, y0, ts, order, return_full_states=False
+    )
+    return out.mean, info, 0
 
 
 def solve_diffrax(f, y0, ts, solver):
@@ -103,10 +112,10 @@ def timeit(f, N):
     return min(times)
 
 
-def benchmark(methods, truesol, N=3):
+def benchmark(methods, truesol, dts, N=3):
     results = defaultdict(lambda: [])
 
-    bar = tqdm.tqdm(DTS, desc="DTs")
+    bar = tqdm.tqdm(dts, desc="DTs")
     for dt in bar:
         bar.write(f"dt={dt}")
         results["dt"].append(dt)
@@ -125,12 +134,10 @@ def benchmark(methods, truesol, N=3):
             if jnp.isinf(out[-1]).all():
                 out = remove_infs(out)
 
-            print(out[-1])
-            print(truesol.ys[-1])
-            err = ((out[-1] - truesol.ys[-1]) ** 2).mean()
-            results[f"{k}_err"].append(err)
+            rmse = jnp.sqrt(jnp.mean((out[-1] - truesol.ys[-1]) ** 2))
+            results[f"{k}_err"].append(rmse)
 
-            bar2.write(f"{k} results: time={t}; err={err}\n")
+            bar2.write(f"{k} results: time={t}; rmse={rmse}\n")
     return results
 
 
@@ -157,18 +164,17 @@ def get_truesol(ivp):
     return truesol
 
 
-for ivp, name in tqdm.tqdm(
-    (
-        (logistic(), "logistic"),
-        (lotkavolterra(), "lotkavolterra"),
-    ),
-    desc="IVP",
-):
+for setup in tqdm.tqdm(SETUPS, desc="Setup"):
+    ivp, name = setup["ivp"], setup["ivp_name"]
     print(f"ivp={name}")
     f, y0 = ivp.f, ivp.y0
     truesol = get_truesol(ivp)
 
-    peks = jax.jit(lambda ts: solve_parallel_eks(f, y0, ts, order=ORDER))
+    peks = jax.jit(
+        lambda ts: solve_parallel_eks(
+            f, y0, ts, coarse_N=setup["coarse_N"], order=ORDER
+        )
+    )
     # peks = jax.jit(lambda ts: pof.solver.solve(f=f, y0=y0, ts=ts, order=ORDER))
     seks = jax.jit(lambda ts: solve_sequential_eks(f, y0, ts, order=ORDER))
     dp5 = jax.jit(lambda ts: solve_diffrax(f, y0, ts, solver=diffrax.Dopri5()))
@@ -186,7 +192,7 @@ for ivp, name in tqdm.tqdm(
         # "probnumek0": lambda ts: solve_probnum(f, y0, ts)[1],
     }
 
-    res = benchmark(methods, truesol, N=5)
+    res = benchmark(methods, truesol, setup["dts"], N=5)
 
     df = pd.DataFrame(res)
     df["N"] = (ivp.tmax - ivp.t0) / df.dt
