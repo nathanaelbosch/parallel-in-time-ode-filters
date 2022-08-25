@@ -40,9 +40,9 @@ monochrome = cycler("color", ["gray"]) * (
 cycle = colored.concat(monochrome)
 
 # ivp_names = ("logistic", "lotkavolterra")
-ivp_names = ("fitzhughnagumo", "fitzhughnagumo")
+ivp_names = ("fitzhughnagumo", "vanderpol")
 # titles = ("Logistic equation", "Lotka-Volterra")
-titles = ("FitzHugh-Nagumo", "FitzHugh-Nagumo")
+titles = ("FitzHugh-Nagumo", "VanDerPol")
 letters = ("a", "b")
 
 for i, ivpname in enumerate(ivp_names):
