@@ -74,6 +74,9 @@ def classic_to_init(*, ys, order, f=None):
 
 def prior_init(*, x0, dtm):
     states_raw = jax.vmap(lambda F, QL: _sqrt_predict(F, QL, x0))(dtm.F, dtm.QL)
+    states_raw = jax.tree_map(
+        lambda a, b: jnp.concatenate((a[None, :], b)), x0, states_raw
+    )
     return states_raw
 
 

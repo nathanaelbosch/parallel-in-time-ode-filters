@@ -42,7 +42,7 @@ def get_coarse_sol(f, y0, tspan, dt_fine):
     return sol
 
 
-def solve(*, f, y0, ts, order, coarse_N=10):
+def solve(*, f, y0, ts, order, init="coarse", coarse_N=10):
     dt = ts[1] - ts[0]
 
     iwp = IWP(num_derivatives=order, wiener_process_dimension=y0.shape[0])
@@ -60,8 +60,16 @@ def solve(*, f, y0, ts, order, coarse_N=10):
     # # ys = jax.vmap(sol_init.evaluate)(ts)
     # # states = classic_to_init(ys=ys, f=f, order=order)
     # states = constant_init(y0=y0, order=order, ts=ts, f=f)
-    states = coarse_ekf_init(y0=y0, order=order, ts=ts, f=f, N=coarse_N)
-    states = jax.vmap(_gmul, in_axes=[None, 0])(PI, states)
+    if init == "coarse":
+        states = coarse_ekf_init(y0=y0, order=order, ts=ts, f=f, N=coarse_N)
+        states = jax.vmap(_gmul, in_axes=[None, 0])(PI, states)
+    elif init == "constant":
+        states = constant_init(y0=y0, order=order, ts=ts, f=f)
+        states = jax.vmap(_gmul, in_axes=[None, 0])(PI, states)
+    elif init == "prior":
+        states = prior_init(x0=x0, dtm=dtm)
+    else:
+        raise Exception(f"init={init} not found")
 
     j0 = jnp.zeros(())
     states, nll, obj, nll_old, obj_old, k = val = (states, j0, j0, j0 + 1, j0 + 1, j0)
