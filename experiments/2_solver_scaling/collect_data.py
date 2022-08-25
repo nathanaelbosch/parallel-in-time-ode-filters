@@ -149,7 +149,7 @@ def benchmark(methods, get_ivp, tmax_range, dt, N=3):
         for k, v in bar2:
             bar2.write(f"{k} start")
             f = lambda: v(ts)
-            out, *_, status = f()
+            out, *info, status = f()
             if status != 0:
                 t = np.nan
             else:
@@ -158,6 +158,9 @@ def benchmark(methods, get_ivp, tmax_range, dt, N=3):
 
             if jnp.isinf(out[-1]).all():
                 out = remove_infs(out)
+
+            if k.lower() == "peks":
+                results[f"{k}_iters"].append(info[0]["iterations"])
 
             rmse = jnp.sqrt(jnp.mean((out[-1] - truesol.ys[-1]) ** 2))
             results[f"{k}_err"].append(rmse)
