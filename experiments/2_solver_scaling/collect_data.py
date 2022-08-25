@@ -187,7 +187,7 @@ for setup in tqdm.tqdm(SETUPS, desc="Setup"):
         "sEKS": block_and_return_state(seks),
         "dp5": block_and_return_state(dp5),
         "kv5": block_and_return_state(kv5),
-        "rk45": rk45,
+        # "rk45": rk45,
         "lsoda": lsoda,
         # "probnumek0": lambda ts: solve_probnum(f, y0, ts)[1],
     }
