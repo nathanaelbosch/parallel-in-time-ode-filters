@@ -48,8 +48,8 @@ SETUPS = (
         "ivp": vanderpol,
         "ivp_name": "vanderpol",
         # "dts": 2.0 ** -np.arange(3, 7),
-        "dt": 0.01,
-        "tmax_range": 2.0 ** jnp.arange(0, 12),
+        "dt": 0.005,
+        "tmax_range": 2.0 ** jnp.arange(0, 8, 0.25),
         # "coarse_N": 50,
     },
     {
@@ -57,7 +57,7 @@ SETUPS = (
         "ivp_name": "fitzhughnagumo",
         # "dts": 2.0 ** -np.arange(3, 7),
         "dt": 0.01,
-        "tmax_range": 2.0 ** jnp.arange(0, 12),
+        "tmax_range": 2.0 ** jnp.arange(0, 8, 0.25),
         # "coarse_N": 50,
     },
 )
@@ -209,9 +209,9 @@ for setup in tqdm.tqdm(SETUPS, desc="Setup"):
         "pEKS": block_and_return_state(peks),
         "sEKS": block_and_return_state(seks),
         "dp5": block_and_return_state(dp5),
-        "kv5": block_and_return_state(kv5),
+        # "kv5": block_and_return_state(kv5),
         # "rk45": rk45,
-        "lsoda": lsoda,
+        # "lsoda": lsoda,
         # "probnumek0": lambda ts: solve_probnum(f, y0, ts)[1],
     }
 
@@ -219,6 +219,7 @@ for setup in tqdm.tqdm(SETUPS, desc="Setup"):
 
     df = pd.DataFrame(res)
     df["N"] = (setup["tmax_range"] - ivp.t0) / setup["dt"]
+    df["tmax"] = setup["tmax_range"]
 
     filename = f"experiments/2_solver_scaling/{name}.csv"
     df.to_csv(filename)

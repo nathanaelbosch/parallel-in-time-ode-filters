@@ -44,6 +44,12 @@ ivp_names = ("fitzhughnagumo", "vanderpol")
 # titles = ("Logistic equation", "Lotka-Volterra")
 titles = ("FitzHugh-Nagumo", "VanDerPol")
 letters = ("a", "b")
+other_solvers = (
+    ("dp5", "Dopri5 (diffrax)"),
+    # ("kv5", "Kvaerno5 (diffrax)"),
+    # ("rk45", "RK45 (scipy)"),
+    # ("lsoda", "LSODA (scipy)"),
+)
 
 for i, ivpname in enumerate(ivp_names):
     for j, yname in enumerate(("time", "err")):
@@ -73,10 +79,8 @@ for i, ivpname in enumerate(ivp_names):
         # ax.plot(df[x], df.sEKSq, label="sequential EKS QR", markersize=10, linewidth=4, zorder=100,)
 
         ref_alpha = 1
-        ax.plot(df[x], df[f"dp5_{yname}"], label="Dopri5 (diffrax)", alpha=ref_alpha)
-        ax.plot(df[x], df[f"kv5_{yname}"], label="Kvaerno5 (diffrax)", alpha=ref_alpha)
-        # ax.plot(df[x], df.rk45, label="RK45 (scipy)", alpha=ref_alpha)
-        ax.plot(df[x], df[f"lsoda_{yname}"], label="LSODA (scipy)", alpha=ref_alpha)
+        for solver, solvername in other_solvers:
+            ax.plot(df[x], df[f"{solver}_{yname}"], label=solvername, alpha=ref_alpha)
 
         if yname == "time":
             # ax.plot(
@@ -117,7 +121,7 @@ axes[1, 0].set_xlabel("Number of gridpoints")
 axes[1, 1].set_xlabel("Number of gridpoints")
 axes[0, 0].set_ylabel("Runtime [s]")
 axes[1, 0].set_ylabel("Mean squared error")
-# axes[0].legend()
+axes[1, 0].legend()
 
 filename = folder / f"plot.pdf"
 fig.savefig(filename)
