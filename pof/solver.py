@@ -77,13 +77,13 @@ def solve(*, f, y0, ts, order, init="coarse", coarse_N=10):
     @jax.jit
     def cond(val):
         states, nll, obj, nll_old, obj_old, k = val
-        # converged = jnp.logical_and(
-        #     jnp.isclose(nll_old, nll), jnp.isclose(obj_old, obj)
-        # )
+        converged = jnp.logical_and(
+            jnp.isclose(nll_old, nll, rtol=1e-3),
+            jnp.isclose(obj_old, obj, rtol=1e-3),
+        )
+        # converged = jnp.isclose(obj_old, obj, rtol=1e-2)
         # isnan = jnp.logical_or(jnp.isnan(nll), jnp.isnan(obj))
-        # return ~jnp.logical_or(jnp.logical_or(converged, isnan), k > 10)
-        return ~jnp.isclose(obj_old, obj)
-        # return k < 20
+        return ~converged
 
     @jax.jit
     def body(val):

@@ -20,19 +20,13 @@ plt.rcParams.update(
     }
 )
 
-fig, axes = plt.subplots(2, 2, sharex="col", sharey="row")
+fig, axes = plt.subplots(3, 2, sharex="col", sharey="row")
 
 colored = (
-    cycler("color", ["r", "b"])
+    cycler("color", ["b", "r"])
     + cycler("marker", ["*", "^"])
     + cycler("linestyle", ["-", "-"])
 )
-# colored2 = (
-#     cycler("color", ["g", "y"])
-#     + cycler("marker", ["*", "^"])
-#     + cycler("linestyle", ["-", "-"])
-# )
-# colored = colored.concat(colored2)
 monochrome = cycler("color", ["gray"]) * (
     cycler("linestyle", [(0, (3, 1, 1, 1)), "--", ":", "-.", (0, (3, 1, 1, 1, 1, 1))])
     + cycler("marker", ["p", "P", "X", "d", "s"])
@@ -58,25 +52,23 @@ for i, ivpname in enumerate(ivp_names):
 
         folder = Path("experiments/2_solver_scaling/")
         df = pd.read_csv(folder / f"{ivpname}.csv", index_col=0)
-        x = "N"
-        ax.plot(
-            df[x],
-            df[f"sEKS_{yname}"],
-            label="sequential EKS",
-            markersize=10,
-            linewidth=4,
-            zorder=100,
-        )
+        x = "tmax"
         ax.plot(
             df[x],
             df[f"pEKS_{yname}"],
             label="parallel EKS",
             markersize=12,
             linewidth=4,
-            zorder=101,
+            zorder=3.2,
         )
-        # ax.plot(df[x], df.pEKSq, label="parallel EKS QR", markersize=12, linewidth=4, zorder=101)
-        # ax.plot(df[x], df.sEKSq, label="sequential EKS QR", markersize=10, linewidth=4, zorder=100,)
+        ax.plot(
+            df[x],
+            df[f"sEKS_{yname}"],
+            label="sequential EKS",
+            markersize=10,
+            linewidth=4,
+            zorder=3.1,
+        )
 
         ref_alpha = 1
         for solver, solvername in other_solvers:
@@ -106,21 +98,28 @@ for i, ivpname in enumerate(ivp_names):
             # )
             pass
 
-        # if i == 0:
-        #     ax.plot(df[x], df.probnumek0, label="EK0 (probnum)", alpha=ref_alpha)
-
-        # ax.set_title("Runtimes on the logistic equation (1D)")
         ax.set_xscale("log")
         ax.set_yscale("log")
 
+for i, ivpname in enumerate(ivp_names):
+    ax = axes[2, i]
+    ax.set_prop_cycle(cycle)
+
+    folder = Path("experiments/2_solver_scaling/")
+    df = pd.read_csv(folder / f"{ivpname}.csv", index_col=0)
+    ax.plot(df[x], df["pEKS_iters"], label="parallel EKS", markersize=12, linewidth=4)
+    ax.set_yscale("log")
 
 for i in range(2):
     axes[0, i].set_title(rf"$\bf {letters[i]})$ " + rf"{titles[i]}", loc="left")
 
-axes[1, 0].set_xlabel("Number of gridpoints")
-axes[1, 1].set_xlabel("Number of gridpoints")
+# axes[1, 0].set_xlabel("Number of gridpoints")
+# axes[1, 1].set_xlabel("Number of gridpoints")
+axes[2, 0].set_xlabel("t_max")
+axes[2, 1].set_xlabel("t_max")
 axes[0, 0].set_ylabel("Runtime [s]")
 axes[1, 0].set_ylabel("Mean squared error")
+axes[2, 0].set_ylabel("IEKS Iterations")
 axes[1, 0].legend()
 
 filename = folder / f"plot.pdf"
