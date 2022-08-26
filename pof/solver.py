@@ -67,7 +67,7 @@ def solve(*, f, y0, ts, order, init="coarse", coarse_N=10):
         states = constant_init(y0=y0, order=order, ts=ts, f=f)
         states = jax.vmap(_gmul, in_axes=[None, 0])(PI, states)
     elif init == "prior":
-        states = prior_init(x0=x0, dtm=dtm)
+        states = prior_init(f=f, y0=y0, order=order, ts=ts)
     else:
         raise Exception(f"init={init} not found")
 
