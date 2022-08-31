@@ -61,3 +61,23 @@ def fitzhughnagumo(t0=0.0, tmax=100.0, y0=None, p=None):
         )
 
     return tornadox.ivp.InitialValueProblem(f=f, t0=t0, tmax=tmax, y0=y0)
+
+
+def rober(t0=0.0, tmax=1e11, y0=None, p=None):
+
+    y0 = y0 or jnp.array([1.0, 0.0, 0.0])
+    p = p or jnp.array([0.04, 3e7, 1e4])
+
+    @jax.jit
+    def f(_, Y, p=p):
+        k1, k2, k3 = p
+        y1, y2, y3 = Y
+        return jnp.array(
+            [
+                -k1 * y1 + k3 * y2 * y3,
+                k1 * y1 - k2 * y2 ** 2 - k3 * y2 * y3,
+                k2 * y2 ** 2,
+            ]
+        )
+
+    return tornadox.ivp.InitialValueProblem(f=f, t0=t0, tmax=tmax, y0=y0)
