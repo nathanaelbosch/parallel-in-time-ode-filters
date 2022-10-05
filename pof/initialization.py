@@ -10,7 +10,7 @@ from pof.utils import MVNSqrt
 from pof.transitions import IWP
 from pof.sequential_filtsmooth.filter import _sqrt_update, _sqrt_predict
 from pof.observations import linearize
-from pof.convenience import discretize_transitions
+from pof.transitions import discretize_transitions
 
 
 def taylor_mode_init(f, y0, num_derivatives):

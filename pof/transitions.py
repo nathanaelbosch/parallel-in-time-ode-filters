@@ -91,3 +91,10 @@ def projection_matrix(iwp: IWP, derivative_to_project_onto):
 @partial(jax.jit, static_argnames=("iwp",))
 def get_transition_model(iwp, dt):
     return TransitionModel(*non_preconditioned_discretize(iwp, dt))
+
+
+def discretize_transitions(iwp, times=None, steps=None):
+    if steps is None:
+        steps = times[1:] - times[:-1]
+    get_transitions = jax.vmap(get_transition_model, in_axes=[None, 0])
+    return get_transitions(iwp, steps)

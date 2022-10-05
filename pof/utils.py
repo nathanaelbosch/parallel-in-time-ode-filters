@@ -101,3 +101,9 @@ def objective_function_value(mnext, m, transition_model):
     F, QL = transition_model
     r = jlinalg.solve_triangular(QL, mnext - F @ m, lower=True)
     return jnp.dot(r, r)
+
+
+@jax.jit
+def _gmul(A: jnp.ndarray, x: MVNSqrt):
+    """Multiply a Gaussian with a matrix: A * x"""
+    return jax.tree_map(lambda l: A @ l, x)

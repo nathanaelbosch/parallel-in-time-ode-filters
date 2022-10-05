@@ -118,7 +118,7 @@ for i in range(2):
 axes[2, 0].set_xlabel("t_max")
 axes[2, 1].set_xlabel("t_max")
 axes[0, 0].set_ylabel("Runtime [s]")
-axes[1, 0].set_ylabel("Mean squared error")
+axes[1, 0].set_ylabel("RMSE")
 axes[2, 0].set_ylabel("IEKS Iterations")
 axes[1, 0].legend()
 

@@ -49,7 +49,8 @@ SETUPS = (
         "ivp_name": "vanderpol",
         # "dts": 2.0 ** -np.arange(3, 7),
         "dt": 0.005,
-        "tmax_range": 2.0 ** jnp.arange(0, 8, 0.25),
+        # "tmax_range": 2.0 ** jnp.arange(0, 8, 0.25),
+        "tmax_range": 2.0 ** jnp.arange(0, 6, 1),
         # "coarse_N": 50,
     },
     {
@@ -57,7 +58,8 @@ SETUPS = (
         "ivp_name": "fitzhughnagumo",
         # "dts": 2.0 ** -np.arange(3, 7),
         "dt": 0.01,
-        "tmax_range": 2.0 ** jnp.arange(0, 8, 0.25),
+        # "tmax_range": 2.0 ** jnp.arange(0, 8, 0.25),
+        "tmax_range": 2.0 ** jnp.arange(0, 6, 1),
         # "coarse_N": 50,
     },
 )

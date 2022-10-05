@@ -5,6 +5,9 @@ import pof.initialization as init
 from pof.observations import AffineModel
 from pof.parallel_filtsmooth import linear_filtsmooth
 from pof.observations import linearize, linearize_regularized
+import pof.convergence_criteria
+from pof.step import ieks_step
+from pof.convenience import set_up_solver, get_initial_trajectory
 
 fs = linear_filtsmooth
 if jax.lib.xla_bridge.get_backend().platform == "gpu":
@@ -15,48 +18,58 @@ lom_reg = jax.jit(
 )
 
 
-def ieks_iterator(dtm, om, x0, init_traj):
+def ieks_iterator(*, f, y0, ts, order, init="prior"):
+    setup = set_up_solver(f=f, y0=y0, ts=ts, order=order)
+    states = get_initial_trajectory(setup, method=init)
+    iterator = _ieks_iterator(setup["dtm"], setup["om"], setup["x0"], states)
+    return iterator, setup
 
-    dom = lom(om, init_traj)
-    out, nll, obj, ssq = fs(x0, dtm, dom)
-    yield out, nll, obj
+
+def _ieks_iterator(dtm, om, x0, init_traj):
+
+    states, nll, obj = ieks_step(om=om, dtm=dtm, x0=x0, states=init_traj)
+    yield states, nll, obj
 
     while True:
 
-        nll_old, obj_old, mean_old = nll, obj, out.mean
+        nll_old, obj_old, mean_old = nll, obj, states.mean
 
-        dom = lom(om, jax.tree_map(lambda l: l[1:], out))
-        out, nll, obj, ssq = fs(x0, dtm, dom)
+        states, nll, obj = ieks_step(om=om, dtm=dtm, x0=x0, states=states)
 
-        yield out, nll, obj
+        yield states, nll, obj
 
-        if (
-            # (jnp.isclose(nll_old, nll) and jnp.isclose(obj_old, obj))
-            jnp.isclose(obj_old, obj)
-            or jnp.isnan(nll)
-            or jnp.isnan(obj)
-        ):
+        if pof.convergence_criteria.crit(obj, obj_old, nll, nll_old):
             break
 
 
-def qpm_ieks_iterator(
+def qpm_ieks_iterator(*, f, y0, ts, order, init="prior", **kwargs):
+    setup = set_up_solver(f=f, y0=y0, ts=ts, order=order)
+    states = get_initial_trajectory(setup, method=init)
+    iterator = _qpm_ieks_iterator(
+        setup["dtm"], setup["om"], setup["x0"], states, **kwargs
+    )
+    return iterator, setup
+
+
+def _qpm_ieks_iterator(
     dtm,
     om,
     x0,
     init_traj,
-    reg_start=1e0,
+    reg_start=1e20,
     reg_final=1e-20,
-    steps=20,
+    steps=40,
     tau_start=None,
     tau_final=None,
 ):
     N = dtm.F.shape[0]
 
-    dom = lom(om, init_traj)
+    dom = lom(om, jax.tree_map(lambda l: l[1:], init_traj))
 
     reg_fact = (reg_final / reg_start) ** (1 / steps)
     if tau_start is None:
-        tau_start, tau_final = jnp.sqrt(reg_start), jnp.sqrt(reg_final)
+        # tau_start, tau_final = jnp.sqrt(reg_start), jnp.sqrt(reg_final)
+        tau_start, tau_final = 1e5, 1e-5
     tau_fact = (tau_final / tau_start) ** (1 / steps)
     reg, tau = reg_start, tau_start
 
@@ -80,7 +93,8 @@ def qpm_ieks_iterator(
 
         yield out, nll, obj, reg
 
-        if jnp.isclose(obj_old - nll_old, obj - nll, rtol=tau):
+        # if jnp.isclose(obj_old - nll_old, obj - nll, rtol=tau):
+        if jnp.isclose(obj_old, obj, rtol=tau):
             reg *= reg_fact
             tau *= tau_fact
             if reg == 0:
@@ -119,4 +133,29 @@ def lm_ieks_iterator(dtm, om, x0, init_traj, reg=1e0, nu=10.0):
             or jnp.isnan(nll)
             or jnp.isnan(obj)
         ):
+            break
+
+
+def admm_ieks_iterator(*, f, y0, ts, order, init="prior"):
+    setup = set_up_solver(f=f, y0=y0, ts=ts, order=order)
+    states = get_initial_trajectory(setup, method=init)
+    iterator = _admm_ieks_iterator(setup["dtm"], setup["om"], setup["x0"], states)
+    return iterator, setup
+
+
+def _admm_ieks_iterator(dtm, om, x0, init_traj, rho=1):
+    dom = linearize_at_previous_states(om, init_traj)
+    states, nll, obj, _ = linear_filtsmooth(x0, dtm, dom)
+    yield states, nll, obj
+
+    while True:
+
+        nll_old, obj_old, mean_old = nll, obj, states.mean
+
+        dom = linearize_at_previous_states(om, states)
+        states, nll, obj, _ = linear_filtsmooth(x0, dtm, dom)
+
+        yield states, nll, obj
+
+        if pof.convergence_criteria.crit(obj, obj_old, nll, nll_old):
             break
