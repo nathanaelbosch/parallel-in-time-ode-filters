@@ -113,6 +113,17 @@ css = ["tinycss2 (>=1.1.0,<1.2)"]
 dev = ["Sphinx (==4.3.2)", "black (==22.3.0)", "build (==0.8.0)", "flake8 (==4.0.1)", "hashin (==0.17.0)", "mypy (==0.961)", "pip-tools (==6.6.2)", "pytest (==7.1.2)", "tox (==3.25.0)", "twine (==4.0.1)", "wheel (==0.37.1)"]
 
 [[package]]
+name = "celluloid"
+version = "0.2.0"
+description = "Easy matplotlib animation."
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+matplotlib = "*"
+
+[[package]]
 name = "cffi"
 version = "1.15.1"
 description = "Foreign Function Interface for Python calling C code."
@@ -394,6 +405,7 @@ python-versions = ">=3.7"
 [package.dependencies]
 absl-py = "*"
 etils = {version = "*", extras = ["epath"]}
+jaxlib = {version = "0.3.22+cuda11.cudnn82", optional = true, markers = "extra == \"cuda\""}
 numpy = ">=1.20"
 opt_einsum = "*"
 scipy = ">=1.5"
@@ -411,7 +423,7 @@ tpu = ["jaxlib (==0.3.22)", "libtpu-nightly (==0.1.dev20221011)", "requests"]
 
 [[package]]
 name = "jaxlib"
-version = "0.3.22"
+version = "0.3.22+cuda11.cudnn82"
 description = "XLA library for JAX"
 category = "main"
 optional = false
@@ -421,6 +433,11 @@ python-versions = ">=3.7"
 absl-py = "*"
 numpy = ">=1.20"
 scipy = ">=1.5"
+
+[package.source]
+type = "legacy"
+url = "https://storage.googleapis.com/jax-releases/jax_cuda_releases.html"
+reference = "jax"
 
 [[package]]
 name = "jaxtyping"
@@ -1279,7 +1296,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "f20fbaac3d24dc9b50b2212b907427762a53abe7a14237e8e238f2dace944fbe"
+content-hash = "a23c7717486e0fb2f7e78ace31d8ee7037d0bac1d6e121c25163702cdc417174"
 
 [metadata.files]
 absl-py = [
@@ -1336,6 +1353,10 @@ beautifulsoup4 = [
 bleach = [
     {file = "bleach-5.0.1-py3-none-any.whl", hash = "sha256:085f7f33c15bd408dd9b17a4ad77c577db66d76203e5984b1bd59baeee948b2a"},
     {file = "bleach-5.0.1.tar.gz", hash = "sha256:0d03255c47eb9bd2f26aa9bb7f2107732e7e8fe195ca2f64709fcf3b0a4a085c"},
+]
+celluloid = [
+    {file = "celluloid-0.2.0-py3-none-any.whl", hash = "sha256:5cebd41276d9658f7667a2f1f565f566763a6110273b4af35c958b1407a9f277"},
+    {file = "celluloid-0.2.0.tar.gz", hash = "sha256:568b1512c4a97483759e9436c3f3e5dc5566da350179aa1872992ec8d82706e1"},
 ]
 cffi = [
     {file = "cffi-1.15.1-cp27-cp27m-macosx_10_9_x86_64.whl", hash = "sha256:a66d3508133af6e8548451b25058d5812812ec3798c886bf38ed24a98216fab2"},
@@ -1562,17 +1583,10 @@ jax = [
     {file = "jax-0.3.23.tar.gz", hash = "sha256:bff436e15552a82c0ebdef32737043b799e1e10124423c57a6ae6118c3a7b6cd"},
 ]
 jaxlib = [
-    {file = "jaxlib-0.3.22-cp310-cp310-macosx_10_14_x86_64.whl", hash = "sha256:6cea1023e4fe62c4d4340f9c0eeeb0c184dcabd7f2cb30a92bdaab742acd5680"},
-    {file = "jaxlib-0.3.22-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:ec8af9e5984191c72a7e86b9e9654117c4301400b6c2ce0a1470e47d5c3ace6d"},
-    {file = "jaxlib-0.3.22-cp310-cp310-manylinux2014_x86_64.whl", hash = "sha256:c36c28d2393ed4174490dc1f4994506de6dd23801cf0a827d0c07470831c594e"},
-    {file = "jaxlib-0.3.22-cp37-cp37m-macosx_10_14_x86_64.whl", hash = "sha256:651522950a8492bacc28e3c5bfc1be213891b3bf2f5488e22513f976cec323ee"},
-    {file = "jaxlib-0.3.22-cp37-cp37m-manylinux2014_x86_64.whl", hash = "sha256:05bacb0f0e379db65b5bc2ae3829adbfa47fb560ee737533f578943feff51529"},
-    {file = "jaxlib-0.3.22-cp38-cp38-macosx_10_14_x86_64.whl", hash = "sha256:5f28d826118da92c6d9ae0765be5969a5419168bda623763ef9145019f2e6d96"},
-    {file = "jaxlib-0.3.22-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:7caf7661f757c6c4abc7ec6b6b44b5d59314a91c610279f31f93dc4545c1dc04"},
-    {file = "jaxlib-0.3.22-cp38-cp38-manylinux2014_x86_64.whl", hash = "sha256:415a82b095b54246a716f45204c9bd6bf26163ade0ae07733f866b2ecf0ff5ba"},
-    {file = "jaxlib-0.3.22-cp39-cp39-macosx_10_14_x86_64.whl", hash = "sha256:34737fd98fadbe9e0422a8ab302e2981aff23e1700d2a1f148d1271697c23f2b"},
-    {file = "jaxlib-0.3.22-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:a93c9cd0f20daba2bf630f041476552dc21a6ecd529a3482355a74dd7ba33f86"},
-    {file = "jaxlib-0.3.22-cp39-cp39-manylinux2014_x86_64.whl", hash = "sha256:eecad425ae6a1889ef92bba2b92af1070fcc7fbd2d4c8c7976b8393476ff1629"},
+    {file = "jaxlib-0.3.22+cuda11.cudnn82-cp310-cp310-manylinux2014_x86_64.whl", hash = "sha256:ada6d4eb6a787c5ed3bbfeadf0b35865d7fa60ed3a8c6af2fc9b7215979a982b"},
+    {file = "jaxlib-0.3.22+cuda11.cudnn82-cp37-cp37m-manylinux2014_x86_64.whl", hash = "sha256:6ebe996191d4d33d8465079128be72d158ae95725a33a8648c60b4deca424026"},
+    {file = "jaxlib-0.3.22+cuda11.cudnn82-cp38-cp38-manylinux2014_x86_64.whl", hash = "sha256:e68917d8c5f966d28b828c42572d202d501a0d8d2950bf57121cdbc29dba9a5f"},
+    {file = "jaxlib-0.3.22+cuda11.cudnn82-cp39-cp39-manylinux2014_x86_64.whl", hash = "sha256:fc0def9de90b537570550174da98940bd274c2edb48944ae9f458bc606830258"},
 ]
 jaxtyping = [
     {file = "jaxtyping-0.2.7-py3-none-any.whl", hash = "sha256:bcd9f1f6a5424e53f821690e03b3f01ce29c17d6e431b5ceb5b470873b62e38b"},
