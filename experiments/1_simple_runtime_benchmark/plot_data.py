@@ -16,7 +16,8 @@ plt.rcParams.update(
         "lines.markeredgewidth": 0.2,
         # "lines.markersize": 4,
         "axes.grid": True,
-        "axes.grid.which": "both",
+        # "axes.grid.which": "both",
+        "axes.grid.which": "major",
     }
 )
 
@@ -101,3 +102,4 @@ axes[0].set_ylabel("Runtime [s]")
 axes[0].legend()
 
 fig.savefig(folder / f"plot.pdf")
+print(f"Saved plot to {folder / 'plot.pdf'}")

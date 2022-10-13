@@ -19,7 +19,8 @@ plt.rcParams.update(
         "lines.markeredgewidth": 0.2,
         # "lines.markersize": 4,
         "axes.grid": True,
-        "axes.grid.which": "both",
+        # "axes.grid.which": "both",
+        "axes.grid.which": "major",
     }
 )
 colored = (
@@ -78,6 +79,7 @@ axes[0].set_ylabel("Runtime [s]")
 axes[0].legend()
 
 fig.savefig(filedir / "plot.pdf", bbox_inches="tight")
+print(f"Saved plot to {filedir / 'plot.pdf'}")
 
 
 DT = 2 ** -13
@@ -101,6 +103,7 @@ ax.set_xlabel("Number of CUDA cores")
 ax.set_ylabel("Runtime [s]")
 ax.legend()
 fig.savefig(filedir / "plot_cores.pdf", bbox_inches="tight")
+print(f"Saved plot to {filedir / 'plot_cores.pdf'}")
 
 
 fig, ax = plt.subplots(1, 1)
@@ -139,3 +142,4 @@ for i, gpu in enumerate(gpus):
     s = ["-", "--", ":"][i]
     ax.axvline(CUDA_CORES[gpu], 0.0, 1.0, color="black", linewidth=1.0, linestyle=s)
 fig.savefig(filedir / "gpu_comparison.pdf", bbox_inches="tight")
+print(f"Saved plot to {filedir / 'gpu_comparison.pdf'}")
