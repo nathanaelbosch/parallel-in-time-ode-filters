@@ -1,5 +1,3 @@
-from typing import Callable, Optional, Union
-
 import jax
 import jax.numpy as jnp
 import jax.scipy.linalg as jlag

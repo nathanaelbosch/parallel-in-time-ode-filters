@@ -1,6 +1,5 @@
-import itertools
 from functools import partial
-from typing import Any, Callable, NamedTuple, Tuple, Union
+from typing import Any, Callable, NamedTuple
 
 import jax
 import jax.numpy as jnp
@@ -107,3 +106,8 @@ def objective_function_value(mnext, m, transition_model):
 def _gmul(A: jnp.ndarray, x: MVNSqrt):
     """Multiply a Gaussian with a matrix: A * x"""
     return jax.tree_map(lambda l: A @ l, x)
+
+
+@jax.jit
+def whiten(m, cholP):
+    return jlinalg.solve_triangular(cholP.T, m)

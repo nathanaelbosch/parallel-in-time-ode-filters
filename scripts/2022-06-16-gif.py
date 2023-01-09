@@ -1,12 +1,8 @@
 # import diffrax
 import jax
 import jax.numpy as jnp
-from tqdm import trange
 import matplotlib.pyplot as plt
 
-import pof
-from pof.diffrax import solve_diffrax
-import pof.initialization as init
 from pof.ivp import *
 from pof.observations import *
 from pof.parallel_filtsmooth import linear_filtsmooth

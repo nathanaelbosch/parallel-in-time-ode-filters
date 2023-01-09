@@ -1,14 +1,11 @@
 import jax
 import jax.numpy as jnp
 
-import pof.iterators
 from pof.convenience import discretize_transitions, linearize_observation_model
 from pof.initialization import taylor_mode_init, prior_init
-from pof.ivp import logistic, lotkavolterra
+from pof.ivp import logistic
 from pof.parallel_filtsmooth import (
-    linear_filtsmooth,
     linear_noiseless_filtering,
-    smoothing,
 )
 from pof.solver import make_continuous_models
 

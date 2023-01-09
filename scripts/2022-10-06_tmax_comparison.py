@@ -39,7 +39,7 @@ def project(states, setup):
 
 tmaxs = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
 # tmaxs = [1, 2, 5]
-DT = 2e-1
+DT = 1e-2
 order = 2
 results = defaultdict(list)
 
@@ -49,7 +49,7 @@ for tmax in tqdm(tmaxs):
     sol_true = solve_diffrax(
         ivp.f, ivp.y0, ivp.t_span, rtol=1e-9, atol=1e-12, max_steps=int(1e6)
     )
-    ts = jnp.arange(ivp.t0, ivp.tmax + dt, dt)
+    ts = jnp.arange(ivp.t0, ivp.tmax + DT, DT)
     N = len(ts)
 
     ys_true = jax.vmap(sol_true.evaluate)(ts)
@@ -90,7 +90,7 @@ axes[1].set_yscale("log")
 axes[1].set_xlabel("Time interval length")
 axes[0].set_ylabel("Number of iterations")
 axes[1].set_ylabel("RMSE")
-fig.savefig(
-    f"scripts/2022-10-06_tmax_comparison_{ivpn}_order{order}_dt{DT}.pdf",
-    bbox_inches="tight",
-)
+# fig.savefig(
+#     f"scripts/2022-10-06_tmax_comparison_{ivpn}_order{order}_dt{DT}.pdf",
+#     bbox_inches="tight",
+# )

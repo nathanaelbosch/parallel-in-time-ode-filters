@@ -1,10 +1,6 @@
-import jax
 import jax.numpy as jnp
-import numpy as np
 import pytest
 
-import pof
-from pof.initialization import taylor_mode_init
 from pof.ivp import logistic
 from pof.parallel_filtsmooth import linear_noiseless_filtering as pfilt
 from pof.parallel_filtsmooth import smoothing as psmooth

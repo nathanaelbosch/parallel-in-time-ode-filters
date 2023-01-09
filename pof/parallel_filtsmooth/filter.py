@@ -4,7 +4,6 @@ import jax
 import jax.numpy as jnp
 import jax.scipy.linalg as jlinalg
 
-from pof.calibration import whiten
 from pof.observations import AffineModel
 from pof.utils import (
     MVNSqrt,
@@ -12,6 +11,7 @@ from pof.utils import (
     mvn_loglikelihood,
     objective_function_value,
     tria,
+    whiten,
 )
 
 

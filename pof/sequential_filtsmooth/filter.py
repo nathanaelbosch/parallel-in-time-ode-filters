@@ -1,5 +1,3 @@
-from typing import Callable, Optional, Union
-
 import jax
 import jax.numpy as jnp
 from jax.scipy.linalg import solve_triangular

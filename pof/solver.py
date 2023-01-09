@@ -5,7 +5,7 @@ import pof.convergence_criteria
 from pof.convenience import get_initial_trajectory, set_up_solver
 from pof.sequential_filtsmooth import filtsmooth as seq_fs
 from pof.step import ieks_step
-from pof.utils import _gmul, MVNSqrt
+from pof.utils import MVNSqrt, _gmul
 
 
 def solve(*, f, y0, ts, order, init="prior", calibrate=True):
