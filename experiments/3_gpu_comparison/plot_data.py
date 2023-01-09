@@ -82,7 +82,7 @@ fig.savefig(filedir / "plot.pdf", bbox_inches="tight")
 print(f"Saved plot to {filedir / 'plot.pdf'}")
 
 
-DT = 2 ** -13
+DT = 2**-13
 rs = defaultdict(lambda: [])
 for gpu in gpus:
     rs["cores"].append(CUDA_CORES[gpu])

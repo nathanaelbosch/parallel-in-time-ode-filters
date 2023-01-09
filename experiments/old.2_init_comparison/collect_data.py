@@ -138,7 +138,7 @@ def evaluate(init_traj, setup, ys_true, opt="ieks"):
 def get_mse(out, E0, ys_true):
     ys = jnp.dot(E0, out.T).T
     es = ys - ys_true
-    return jax.vmap(lambda e: jnp.sqrt(jnp.mean(e ** 2)), in_axes=0)(es).mean()
+    return jax.vmap(lambda e: jnp.sqrt(jnp.mean(e**2)), in_axes=0)(es).mean()
 
 
 ########################################################################################
