@@ -44,18 +44,25 @@ def solve(*, f, y0, ts, order, init="prior", calibrate=True):
         return states, nll, obj, ssq, nll_old, obj_old, k + 1
 
     states, nll, obj, ssq, _, _, k = val = jax.lax.while_loop(cond, body, val)
-    info_dict = {"iterations": k, "nll": nll, "obj": obj, "sigma_squared": ssq}
+    info_dict = {
+        "iterations": k,
+        "nll": nll,
+        "obj": obj,
+        "sigma_squared": ssq,
+        "calibrated": False,
+    }
 
     if calibrate:
         chols = ssq**0.5 * states.chol
         states = MVNSqrt(states.mean, chols)
+        info_dict["calibrated"] = True
 
     ys = jax.vmap(_gmul, in_axes=[None, 0])(setup["E0"], states)
 
     return ys, info_dict
 
 
-def sequential_eks_solve(f, y0, ts, order, return_full_states=False):
+def sequential_eks_solve(*, f, y0, ts, order, return_full_states=False, calibrate=True):
 
     setup = set_up_solver(f=f, y0=y0, ts=ts, order=order)
 
@@ -63,12 +70,17 @@ def sequential_eks_solve(f, y0, ts, order, return_full_states=False):
     om = setup["om"]
     x0 = setup["x0"]
 
-    states, nll = seq_fs(x0, dtm, om)
+    states, nll, ssq = seq_fs(x0, dtm, om)
+    info_dict = {"nll": nll, "sigma_squared": ssq, "calibrated": False}
 
-    info_dict = {"nll": nll}
+    if calibrate:
+        chols = ssq**0.5 * states.chol
+        states = MVNSqrt(states.mean, chols)
+        info_dict["calibrated"] = True
+
     if not return_full_states:
         states = jax.vmap(_gmul, in_axes=[None, 0])(setup["E0"], states)
     else:
         states = jax.vmap(_gmul, in_axes=[None, 0])(setup["P"], states)
 
-    return states, ts, info_dict
+    return states, info_dict

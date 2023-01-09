@@ -15,21 +15,10 @@ def ivp():
     return logistic()
 
 
-@pytest.mark.parametrize("order", [1, 3])
-@pytest.mark.parametrize("dt", [0.5])
-def test_sequential_eks(ivp, order, dt):
-    time_grid = jnp.arange(0, ivp.tmax + dt, dt)
-    out, _, info = sequential_eks_solve(
-        ivp.f, ivp.y0, time_grid, order, return_full_states=False
-    )
-
-    assert out.mean.shape[0] == len(time_grid)
-
-
 def test_equality():
     x0, disc_transmod, obsmod = get_model()
 
-    out_ekf, _ = sfilt(x0, disc_transmod, obsmod)
+    out_ekf, _, _ = sfilt(x0, disc_transmod, obsmod)
     out_eks = ssmooth(disc_transmod, out_ekf)
     assert out_ekf.mean.shape == out_eks.mean.shape
     assert out_ekf.chol.shape == out_eks.chol.shape

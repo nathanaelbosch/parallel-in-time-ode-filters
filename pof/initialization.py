@@ -117,8 +117,8 @@ def coarse_ekf_init(*, f, y0, order, ts, N=10):
     # tspan = (ts[0], ts[-1])
     from pof.solver import sequential_eks_solve
 
-    _out, _ts, _ = sequential_eks_solve(
-        f, y0, coarse_ts, order=order, return_full_states=True
+    _out, _ = sequential_eks_solve(
+        f=f, y0=y0, ts=coarse_ts, order=order, return_full_states=True
     )
 
     idxs = jnp.floor(ts / coarse_dt).astype(int)
