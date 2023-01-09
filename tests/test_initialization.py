@@ -6,10 +6,10 @@ import pytest
 import pof
 from pof.initialization import *
 from pof.ivp import logistic
+from pof.observations import *
 from pof.parallel_filtsmooth import linear_filtsmooth
 from pof.solver import make_continuous_models
 from pof.transitions import *
-from pof.observations import *
 
 
 @pytest.fixture

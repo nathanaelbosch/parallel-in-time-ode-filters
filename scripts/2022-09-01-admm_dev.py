@@ -50,7 +50,7 @@ def _admm_adjust_dom(dom, Y, rho_sqrt):
     d = Y.shape[-1]
     _cholR = jnp.eye(d) / rho_sqrt
     cholR = jax.vmap(lambda _: _cholR)(dom.cholR)
-    bnew = dom.b + Y / (rho_sqrt ** 2)
+    bnew = dom.b + Y / (rho_sqrt**2)
     dom = jax.vmap(AffineModel)(dom.H, bnew, cholR)
     return dom
 
@@ -86,7 +86,7 @@ def _admm_ieks_iterator(dtm, om, x0, states, Y0, rho_sqrt=1e-1):
             yield states, *stuff
 
         e = jax.vmap(om)(states.mean[1:])
-        Y = Y + rho_sqrt ** 2 * e
+        Y = Y + rho_sqrt**2 * e
 
 
 setup = set_up_solver(f=ivp.f, y0=ivp.y0, ts=ts, order=order)

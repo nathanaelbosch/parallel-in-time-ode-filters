@@ -6,11 +6,10 @@ import jax
 import jax.numpy as jnp
 import tornadox
 
-from pof.utils import MVNSqrt
-from pof.transitions import IWP
-from pof.sequential_filtsmooth.filter import _sqrt_update, _sqrt_predict
 from pof.observations import linearize
-from pof.transitions import discretize_transitions
+from pof.sequential_filtsmooth.filter import _sqrt_predict, _sqrt_update
+from pof.transitions import IWP, discretize_transitions
+from pof.utils import MVNSqrt
 
 
 def taylor_mode_init(f, y0, num_derivatives):

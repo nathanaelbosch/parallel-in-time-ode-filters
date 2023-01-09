@@ -15,7 +15,7 @@ ivp = logistic()
 f, y0 = ivp.f, ivp.y0
 
 order = 2
-dt = 2.0 ** -5
+dt = 2.0**-5
 ts = jnp.arange(ivp.t0, ivp.tmax + dt, dt)
 
 iwp, om = make_continuous_models(f, y0, order)

@@ -1,8 +1,8 @@
 import jax
 
+import pof.initialization as init
 from pof.observations import *
 from pof.transitions import *
-import pof.initialization as init
 from pof.utils import _gmul
 
 

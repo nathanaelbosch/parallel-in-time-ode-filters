@@ -2,8 +2,8 @@ from functools import partial
 
 import jax
 
-from pof.parallel_filtsmooth import linear_filtsmooth
 from pof.observations import linearize
+from pof.parallel_filtsmooth import linear_filtsmooth
 
 
 @partial(jax.jit, static_argnames="om")

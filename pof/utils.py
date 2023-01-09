@@ -73,9 +73,9 @@ def _householder(a):
     s = jnp.sum(a[1:] ** 2)
 
     v = a
-    t = (alpha ** 2 + s) ** 0.5
+    t = (alpha**2 + s) ** 0.5
     v0 = jax.lax.cond(alpha <= 0, lambda _: alpha - t, lambda _: -s / (alpha + t), None)
-    tau = 2 * v0 ** 2 / (s + v0 ** 2)
+    tau = 2 * v0**2 / (s + v0**2)
     v = v / v0
     v = v.at[0].set(1.0)
 

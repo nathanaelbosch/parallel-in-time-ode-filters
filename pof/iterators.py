@@ -1,13 +1,12 @@
 import jax
 import jax.numpy as jnp
 
-import pof.initialization as init
-from pof.observations import AffineModel
-from pof.parallel_filtsmooth import linear_filtsmooth
-from pof.observations import linearize, linearize_regularized
 import pof.convergence_criteria
+import pof.initialization as init
+from pof.convenience import get_initial_trajectory, set_up_solver
+from pof.observations import AffineModel, linearize, linearize_regularized
+from pof.parallel_filtsmooth import linear_filtsmooth
 from pof.step import ieks_step
-from pof.convenience import set_up_solver, get_initial_trajectory
 
 fs = linear_filtsmooth
 if jax.lib.xla_bridge.get_backend().platform == "gpu":

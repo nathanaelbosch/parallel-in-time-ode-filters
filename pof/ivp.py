@@ -55,7 +55,7 @@ def fitzhughnagumo(t0=0.0, tmax=100.0, y0=None, p=None):
         w = Y[1]
         return jnp.array(
             [
-                v - (v ** 3) / 3 - w + l,
+                v - (v**3) / 3 - w + l,
                 tinv * (v + a - b * w),
             ]
         )
@@ -75,8 +75,8 @@ def rober(t0=0.0, tmax=1e11, y0=None, p=None):
         return jnp.array(
             [
                 -k1 * y1 + k3 * y2 * y3,
-                k1 * y1 - k2 * y2 ** 2 - k3 * y2 * y3,
-                k2 * y2 ** 2,
+                k1 * y1 - k2 * y2**2 - k3 * y2 * y3,
+                k2 * y2**2,
             ]
         )
 
