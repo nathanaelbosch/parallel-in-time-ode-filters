@@ -17,5 +17,5 @@ def linearize_at_previous_states(om, prev_states):
 @partial(jax.jit, static_argnames="om")
 def ieks_step(*, om, dtm, x0, states):
     dom = linearize_at_previous_states(om, states)
-    states, nll, obj, _ = linear_filtsmooth(x0, dtm, dom)
-    return states, nll, obj
+    states, nll, obj, ssq = linear_filtsmooth(x0, dtm, dom)
+    return states, nll, obj, ssq
