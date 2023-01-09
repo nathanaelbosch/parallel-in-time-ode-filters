@@ -7,7 +7,7 @@ import pof
 from pof.initialization import constant_init, taylor_mode_init
 from pof.ivp import logistic
 from pof.parallel_filtsmooth import linear_filtsmooth
-from pof.solver import make_continuous_models
+from pof.solver import solve
 
 
 @pytest.fixture
@@ -16,18 +16,9 @@ def ivp():
 
 
 @pytest.mark.parametrize("order", [1, 3])
+@pytest.mark.parametrize("init", ["constant", "prior"])
 @pytest.mark.parametrize("dt", [0.5])
-def test_full_solve(ivp, order, dt):
-    transition_model, observation_model = make_continuous_models(ivp.f, ivp.y0, order)
+def test_full_solve(ivp, order, init, dt):
     time_grid = jnp.arange(0, ivp.tmax + dt, dt)
-    discrete_transition_models = pof.discretize_transitions(transition_model, time_grid)
-    initial_trajectory = constant_init(y0=ivp.y0, f=ivp.f, order=order, ts=time_grid)
-    linearized_observation_models = pof.linearize_observation_model(
-        observation_model, jax.tree_map(lambda l: l[1:], initial_trajectory)
-    )
-
-    x0 = taylor_mode_init(ivp.f, ivp.y0, order)
-
-    out, nll, obj, ssq = linear_filtsmooth(
-        x0, discrete_transition_models, linearized_observation_models
-    )
+    out, info = solve(f=ivp.f, y0=ivp.y0, ts=time_grid, order=order, init=init)
+    assert out.mean.shape[0] == len(time_grid)

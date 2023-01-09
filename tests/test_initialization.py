@@ -4,11 +4,17 @@ import numpy as np
 import pytest
 
 import pof
-from pof.initialization import *
+from pof.initialization import (
+    taylor_mode_init,
+    constant_init,
+    prior_init,
+    _prior_init,
+    updated_prior_init,
+    coarse_ekf_init,
+    coarse_rk_init,
+)
 from pof.ivp import logistic
 from pof.observations import *
-from pof.parallel_filtsmooth import linear_filtsmooth
-from pof.solver import make_continuous_models
 from pof.transitions import *
 
 
@@ -36,7 +42,8 @@ def test_prior_init(ivp, order, dt):
     ts = jnp.arange(ivp.t0, ivp.tmax + dt, dt)
     dtm = jax.vmap(lambda _: TransitionModel(*preconditioned_discretize(iwp)))(ts[1:])
 
-    initial_trajectory = prior_init(x0=x0, dtm=dtm)
+    initial_trajectory1 = _prior_init(x0=x0, dtm=dtm)
+    initial_trajectory2 = prior_init(f=ivp.f, y0=ivp.y0, order=order, ts=ts)
 
 
 @pytest.mark.parametrize("order", orders)

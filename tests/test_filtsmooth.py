@@ -10,7 +10,7 @@ from pof.parallel_filtsmooth import linear_noiseless_filtering as pfilt
 from pof.parallel_filtsmooth import smoothing as psmooth
 from pof.sequential_filtsmooth import extended_kalman_filter as sfilt
 from pof.sequential_filtsmooth import smoothing as ssmooth
-from pof.solver import make_continuous_models
+from pof.solver import sequential_eks_solve
 from tests.simple_linear_model import get_model, linearize_model
 
 
@@ -22,17 +22,12 @@ def ivp():
 @pytest.mark.parametrize("order", [1, 3])
 @pytest.mark.parametrize("dt", [0.5])
 def test_sequential_eks(ivp, order, dt):
-    transition_model, observation_model = make_continuous_models(ivp.f, ivp.y0, order)
     time_grid = jnp.arange(0, ivp.tmax + dt, dt)
-    discrete_transition_models = pof.discretize_transitions(transition_model, time_grid)
-
-    x0 = taylor_mode_init(ivp.f, ivp.y0, order)
-
-    out, nll = sfilt(x0, discrete_transition_models, observation_model)
+    out, _, info = sequential_eks_solve(
+        ivp.f, ivp.y0, time_grid, order, return_full_states=False
+    )
 
     assert out.mean.shape[0] == len(time_grid)
-
-    ssmooth(discrete_transition_models, out)
 
 
 def test_equality():

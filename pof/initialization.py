@@ -90,7 +90,7 @@ def prior_init(*, f, y0, order, ts):
 
 
 def updated_prior_init(*, x0, dtm, om):
-    states = prior_init(x0=x0, dtm=dtm)
+    states = _prior_init(x0=x0, dtm=dtm)
 
     def update(x, om):
         H, b, cholR = linearize(om, x)
