@@ -27,6 +27,7 @@ jax = "^0.3.23"
 # if gpu does not work, try `poetry install --with gpu`, or uncomment the ones from above
 diffrax = "^0.2.1"
 tornadox = "^0.0.1"
+diffeqzoo = "^0.0.3"
 
 [tool.poetry.group.gpu]
 optional = true

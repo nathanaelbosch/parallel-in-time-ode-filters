@@ -193,6 +193,21 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
+name = "diffeqzoo"
+version = "0.0.3"
+description = "Ordinary differential equation zoo"
+category = "main"
+optional = false
+python-versions = ">=3.8"
+
+[package.extras]
+example = ["diffrax", "jupyter", "jupytext", "matplotlib", "scipy"]
+jax = ["jax[cpu]"]
+lint = ["black", "flake8", "flake8-docstrings", "isort", "jupytext", "nbqa"]
+numpy = ["numpy"]
+test = ["pytest", "pytest-cases", "pytest-randomly"]
+
+[[package]]
 name = "diffrax"
 version = "0.2.1"
 description = "GPU+autodiff-capable ODE/SDE/CDE solvers written in JAX."
@@ -1296,7 +1311,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "a23c7717486e0fb2f7e78ace31d8ee7037d0bac1d6e121c25163702cdc417174"
+content-hash = "8e6fe60009fac7481132f0db95a07c622cd69ce60821bb44fc40f0d21e22c202"
 
 [metadata.files]
 absl-py = [
@@ -1530,6 +1545,9 @@ decorator = [
 defusedxml = [
     {file = "defusedxml-0.7.1-py2.py3-none-any.whl", hash = "sha256:a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61"},
     {file = "defusedxml-0.7.1.tar.gz", hash = "sha256:1bb3032db185915b62d7c6209c5a8792be6a32ab2fedacc84e01b52c51aa3e69"},
+]
+diffeqzoo = [
+    {file = "diffeqzoo-0.0.3-py3-none-any.whl", hash = "sha256:8f8ece06a213b88879dc76ed6297b6fe4bbff7baa3bee9890c269cd77da440a4"},
 ]
 diffrax = [
     {file = "diffrax-0.2.1-py3-none-any.whl", hash = "sha256:9dd338bc584ac1cf32220f48b831507342f1dbf28957f8ff81f409e0ff8a3ba1"},
