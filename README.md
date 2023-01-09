@@ -1,11 +1,13 @@
 # Parallel-in-time ODE Filters
 
-Maybe install jax first:
-```
-pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_releases.html
-```
+## Project environment setup
+The project uses [poetry](https://python-poetry.org/).
+After installing poetry, you should be able to initialize the project with just
+```poetry install```
 
-The other dependencies are in the `requirements.txt`:
+## Testing
+Just use [`tox`](https://tox.wiki/en/latest/):
 ```
-pip install -r requirements.txt
+tox -e py3
 ```
+Or even just `tox` to also run [`black`](https://github.com/psf/black) and [`isort`](https://pycqa.github.io/isort/).
