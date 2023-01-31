@@ -26,16 +26,16 @@ def ieks_iterator(*, f, y0, ts, order, init="prior"):
 
 def _ieks_iterator(dtm, om, x0, init_traj):
 
-    states, nll, obj = ieks_step(om=om, dtm=dtm, x0=x0, states=init_traj)
-    yield states, nll, obj
+    states, nll, obj, ssq = ieks_step(om=om, dtm=dtm, x0=x0, states=init_traj)
+    yield states, nll, obj, ssq
 
     while True:
 
         nll_old, obj_old, mean_old = nll, obj, states.mean
 
-        states, nll, obj = ieks_step(om=om, dtm=dtm, x0=x0, states=states)
+        states, nll, obj, ssq = ieks_step(om=om, dtm=dtm, x0=x0, states=states)
 
-        yield states, nll, obj
+        yield states, nll, obj, ssq
 
         if pof.convergence_criteria.crit(obj, obj_old, nll, nll_old):
             break
