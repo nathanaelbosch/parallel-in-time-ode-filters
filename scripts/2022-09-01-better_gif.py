@@ -33,7 +33,8 @@ def project(states, setup):
     return pmean, pcov
 
 
-ivp, ylims = vanderpol(tmax=100, stiffness_constant=1e0), (-2.5, 2.5)
+ivp, ylims = vanderpol(tmax=10, stiffness_constant=1e0), (-2.5, 2.5)
+# ivp, ylims = lotkavolterra(), (0, 8)
 order = 3
 dt = 1e-1
 ts = jnp.arange(ivp.t0, ivp.tmax + dt, dt)
@@ -42,7 +43,7 @@ sol_true = solve_diffrax(ivp.f, ivp.y0, ivp.t_span, max_steps=int(1e6))
 ys_true = jax.vmap(sol_true.evaluate)(ts)
 
 # _iter, setup = qpm_ieks_iterator(f=ivp.f, y0=ivp.y0, ts=ts, order=order)
-_iter, setup = ieks_iterator(f=ivp.f, y0=ivp.y0, ts=ts, order=order)
+_iter, setup = ieks_iterator(f=ivp.f, y0=ivp.y0, ts=ts, order=order, init="prior")
 _iter = wrap_iterator(_iter)
 
 
@@ -51,11 +52,11 @@ from celluloid import Camera
 fig = plt.figure()
 camera = Camera(fig)
 
-for (k, (states, nll, obj)) in enumerate(_iter):
+for (k, (states, nll, obj, *_)) in enumerate(_iter):
     ys, covs = project(states, setup)
     d = ys.shape[1]
-    plt.plot(setup["ts"], ys_true[:, 0], "--k", linewidth=0.5)
-    for i in range(1):
+    for i in range(d):
+        plt.plot(setup["ts"], ys_true[:, i], "--k", linewidth=0.5)
         plt.plot(setup["ts"], ys[:, i], color=f"C{i}")
         plt.fill_between(
             setup["ts"],
