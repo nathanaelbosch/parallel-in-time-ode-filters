@@ -8,7 +8,7 @@ from pof.step import ieks_step
 from pof.utils import MVNSqrt, _gmul
 
 
-def solve(*, f, y0, ts, order, init="prior", calibrate=True):
+def solve(*, f, y0, ts, order, init="prior", calibrate=True, maxiters=10_000):
     setup = set_up_solver(f=f, y0=y0, ts=ts, order=order)
 
     dtm = setup["dtm"]
@@ -33,7 +33,9 @@ def solve(*, f, y0, ts, order, init="prior", calibrate=True):
     @jax.jit
     def cond(val):
         states, nll, obj, ssq, nll_old, obj_old, k = val
-        return ~pof.convergence_criteria.crit(obj, obj_old, nll, nll_old)
+        return ~jnp.logical_or(
+            pof.convergence_criteria.crit(obj, obj_old, nll, nll_old), k > maxiters
+        )
 
     @jax.jit
     def body(val):
