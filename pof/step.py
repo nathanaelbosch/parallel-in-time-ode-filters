@@ -2,14 +2,20 @@ from functools import partial
 
 import jax
 
-from pof.observations import linearize
+from pof.observations import linearize, linearize_regularized
 from pof.parallel_filtsmooth import linear_filtsmooth
+from pof.linearization.unscented import linearize_unscented
 
 
 @partial(jax.jit, static_argnames="om")
 def linearize_at_previous_states(om, prev_states):
     lin_traj = jax.tree_map(lambda l: l[1:], prev_states)
-    vlinearize = jax.vmap(linearize, in_axes=[None, 0])
+    vlinearize = jax.vmap(
+        linearize,
+        # linearize_unscented,
+        # lambda f, x: linearize_regularized(f, x, 1e3),
+        in_axes=[None, 0],
+    )
     dom = vlinearize(om, lin_traj)
     return dom
 
