@@ -23,7 +23,7 @@ def linearize_at_previous_states(om, prev_states):
 
 @partial(jax.jit, static_argnames=["om", "calibrate"])
 def ieks_step(*, om, dtm, x0, states, calibrate=True):
-    dom = linearize_at_previous_states(om, inflate(states))
+    dom = linearize_at_previous_states(om, states)
     states, nll, obj, ssq = linear_filtsmooth(x0, dtm, dom)
     if calibrate:
         chols = ssq**0.5 * states.chol
