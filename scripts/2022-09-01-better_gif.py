@@ -37,7 +37,9 @@ ivp, ylims = vanderpol(tmax=10, stiffness_constant=1e0), (-2.5, 2.5)
 # ivp, ylims = lotkavolterra(), (0, 8)
 order = 3
 dt = 1e-1
-ts = jnp.arange(ivp.t0, ivp.tmax + dt, dt)
+# ts = jnp.arange(ivp.t0, ivp.tmax + dt, dt)
+N = 2**13
+ts = jnp.linspace(ivp.t0, ivp.tmax, N)
 
 sol_true = solve_diffrax(ivp.f, ivp.y0, ivp.t_span, max_steps=int(1e6))
 ys_true = jax.vmap(sol_true.evaluate)(ts)

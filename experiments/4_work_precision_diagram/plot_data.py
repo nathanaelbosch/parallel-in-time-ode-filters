@@ -23,6 +23,24 @@ current_dir = "./experiments/4_work_precision_diagram"
 filename = os.path.join(current_dir, "data.csv")
 df = pd.read_csv(filename)
 
+keys = [c[:-5] for c in df.columns if "time" in c]
+# classic_keys = [c for c in keys if "IEKS" not in c and "EKS" not in c]
+# eks_keys = [c for c in keys if "EKS" in c and "IEKS" not in c]
+# ieks_keys = [c for c in keys if "IEKS" in c]
+classic_keys = ["ImplicitEuler", "KV3", "KV5"]
+eks_keys = [
+    "EKS(1)",
+    "EKS(2)",
+    "EKS(3)",
+    "EKS(5)",
+]
+ieks_keys = [
+    "IEKS(1)",
+    "IEKS(2)",
+    "IEKS(3)",
+    "IEKS(5)",
+]
+
 MAXITER = 1000
 
 CLASSIC_MARKERS = ["o", "s", "v", "x", "D", "P", "X", "d", "p", "h", "H", "8"]
@@ -45,10 +63,7 @@ def replace_large_with_inf(df, large=1e8):
     return df
 
 
-def plot_xy(*, df, keys, x, y, ax, labels=True):
-    classic_keys = [c for c in keys if "IEKS" not in c and "EKS" not in c]
-    eks_keys = [c for c in keys if "EKS" in c and "IEKS" not in c]
-    ieks_keys = [c for c in keys if "IEKS" in c]
+def plot_xy(*, df, x, y, ax, labels=True):
     for (i, key) in enumerate(classic_keys):
         label = key
         ax.plot(
@@ -58,19 +73,6 @@ def plot_xy(*, df, keys, x, y, ax, labels=True):
             marker=CLASSIC_MARKERS[i],
             markersize=5,
             color="gray",
-        )
-    for key in eks_keys:
-        label = key
-        order, _ = get_order_and_maxiter(key)
-        ax.plot(
-            df[x(key)],
-            df[y(key)],
-            label=label if labels else "",
-            marker="o",
-            markersize=3,
-            # alpha=(maxiter / MAXITER) ** (1 / 4),
-            color=f"C{order}",
-            linestyle="dashed",
         )
     for key in ieks_keys:
         label = key
@@ -84,6 +86,20 @@ def plot_xy(*, df, keys, x, y, ax, labels=True):
             alpha=(maxiter / MAXITER) ** (1 / 4),
             color=f"C{order}",
         )
+    for key in eks_keys:
+        label = key
+        order, _ = get_order_and_maxiter(key)
+        ax.plot(
+            df[x(key)],
+            df[y(key)],
+            label=label if labels else "",
+            marker="o",
+            markersize=3,
+            # alpha=(maxiter / MAXITER) ** (1 / 4),
+            alpha=0.3,
+            color=f"C{order}",
+            linestyle="dashed",
+        )
 
     ax.set_xscale("log")
     ax.set_yscale("log")
@@ -94,16 +110,9 @@ def plot_xy(*, df, keys, x, y, ax, labels=True):
 def plot(df):
     fig, ax = plt.subplots(2, 2)
 
-    keys = [c[:-5] for c in df.columns if "time" in c]
-
-    classic_keys = [c for c in keys if "IEKS" not in c and "EKS" not in c]
-    eks_keys = [c for c in keys if "EKS" in c and "IEKS" not in c]
-    ieks_keys = [c for c in keys if "IEKS" in c]
-
     # 1: error vs runtime
     plot_xy(
         df=df,
-        keys=keys,
         x=lambda k: f"{k}_time",
         y=lambda k: f"{k}_rmse",
         ax=ax[0, 0],
@@ -114,7 +123,6 @@ def plot(df):
     # 2: error vs N
     plot_xy(
         df=df,
-        keys=keys,
         x=lambda k: f"Ns",
         y=lambda k: f"{k}_rmse",
         ax=ax[0, 1],
@@ -126,7 +134,6 @@ def plot(df):
     # 3: runtime vs N
     plot_xy(
         df=df,
-        keys=keys,
         x=lambda k: f"Ns",
         y=lambda k: f"{k}_time",
         ax=ax[1, 0],
@@ -154,7 +161,7 @@ def plot(df):
     ax[1, 1].set_ylabel("IEKS Iterations")
     # ax[1,1].legend()
 
-    leg = fig.legend(bbox_to_anchor=(1.05, 0.5), loc="center left", borderaxespad=0.0)
+    leg = fig.legend(bbox_to_anchor=(1.02, 0.5), loc="center left", borderaxespad=0.0)
     # leg = fig.legend(loc="center right")
     # fig.tight_layout()
 
@@ -165,3 +172,4 @@ replace_large_with_inf(df)
 fig = plot(df)
 # save high resolution figure
 fig.savefig(os.path.join(current_dir, "wpd.png"), bbox_inches="tight", dpi=300)
+fig.savefig(os.path.join(current_dir, "wpd.pdf"), bbox_inches="tight")
