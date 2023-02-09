@@ -96,14 +96,16 @@ def _eks(order):
 
 
 SETUPS = {
-    "fhn": (fitzhughnagumo(), 2 ** jnp.arange(8, 18)),
-    "fhn500": (fitzhughnagumo(tmax=500), 2 ** jnp.arange(10, 20)),
-    "logistic": (logistic(), 2 ** jnp.arange(2, 16)),
-    "vdp": (vanderpol(tmax=10, stiffness_constant=1e2), 2 ** jnp.arange(8, 20)),
+    "fhn": (fitzhughnagumo(), 2 ** jnp.arange(9, 23)),
+    "fhn500": (fitzhughnagumo(tmax=500), 2 ** jnp.arange(9, 23)),
+    "logistic": (logistic(), 2 ** jnp.arange(8, 23)),
+    "vdp": (vanderpol(tmax=10, stiffness_constant=1e2), 2 ** jnp.arange(9, 23)),
+    "rigidbody": (rigid_body(), 2 ** jnp.arange(9, 23)),
+    "seir": (seir(), 2 ** jnp.arange(9, 23)),
 }
 METHODS = {
-    "DP5": _diffrax(diffrax.Dopri5()),
-    "Heun": _diffrax(diffrax.Heun()),
+    # "DP5": _diffrax(diffrax.Dopri5()),
+    # "Heun": _diffrax(diffrax.Heun()),
     "ImplicitEuler": _diffrax(
         diffrax.ImplicitEuler(diffrax.NewtonNonlinearSolver(rtol=1e-6, atol=1e-9))
     ),
@@ -116,11 +118,11 @@ METHODS = {
     "EKS(1)": _eks(1),
     "EKS(2)": _eks(2),
     "EKS(3)": _eks(3),
-    "EKS(5)": _eks(5),
+    # "EKS(5)": _eks(5),
     "IEKS(1)": _ieks(1, 1000),
     "IEKS(2)": _ieks(2, 1000),
     "IEKS(3)": _ieks(3, 1000),
-    "IEKS(5)": _ieks(5, 1000),
+    # "IEKS(5)": _ieks(5, 1000),
 }
 
 
@@ -130,7 +132,9 @@ def main(setupname, save=False):
     IVP, Ns = SETUPS[setupname]
     # Ns_test = Ns = 2 ** jnp.arange(10, 12)
 
-    ref = solve_diffrax(IVP.f, IVP.y0, IVP.t_span, atol=1e-20, rtol=1e-20)
+    ref = solve_diffrax(
+        IVP.f, IVP.y0, IVP.t_span, solver=diffrax.Kvaerono5(), atol=1e-20, rtol=1e-20
+    )
     yref_final = get_ts_ys(ref)[1][-1]
 
     def evaluate_method(method, methodname, Ns):
