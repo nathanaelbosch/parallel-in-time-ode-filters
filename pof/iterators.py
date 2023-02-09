@@ -31,13 +31,15 @@ def _ieks_iterator(dtm, om, x0, init_traj):
 
     while True:
 
-        nll_old, obj_old, mean_old = nll, obj, states.mean
+        nll_old, obj_old, states_old = nll, obj, states
 
-        states, nll, obj, ssq = ieks_step(om=om, dtm=dtm, x0=x0, states=states)
+        states, nll, obj, ssq = ieks_step(om=om, dtm=dtm, x0=x0, states=states_old)
 
         yield states, nll, obj, ssq
 
-        if pof.convergence_criteria.crit(obj, obj_old, nll, nll_old):
+        if pof.convergence_criteria.crit(
+            obj, obj_old, nll, nll_old, states, states_old
+        ):
             break
 
 
@@ -74,26 +76,27 @@ def _qpm_ieks_iterator(
 
     init_covs = init_traj.chol
     if jnp.all(init_covs == 0):
-        init_covs = init.prior_init(x0=x0, dtm=dtm).chol
+        init_covs = init._prior_init(x0=x0, dtm=dtm).chol
     # cholR = jax.vmap(lambda H, cP: reg * tria(H @ cP))(dom.H, init_covs)
     cholR = jax.vmap(lambda cR: jnp.eye(*cR.shape))(dom.cholR)
 
     dom = jax.vmap(AffineModel)(dom.H, dom.b, reg * cholR / N)
-    out, nll, obj, ssq = fs(x0, dtm, dom)
-    yield out, nll, obj, reg
+    states, nll, obj, ssq = fs(x0, dtm, dom)
+    yield states, nll, obj, reg
 
     while True:
 
-        nll_old, obj_old, out_old = nll, obj, out
+        nll_old, obj_old, states_old = nll, obj, states
 
-        dom = lom(om, jax.tree_map(lambda l: l[1:], out))
+        dom = lom(om, jax.tree_map(lambda l: l[1:], states))
         dom = jax.vmap(AffineModel)(dom.H, dom.b, reg * cholR / N)
-        out, nll, obj, ssq = fs(x0, dtm, dom)
+        states, nll, obj, ssq = fs(x0, dtm, dom)
 
-        yield out, nll, obj, reg
+        yield states, nll, obj, reg
 
-        # if jnp.isclose(obj_old - nll_old, obj - nll, rtol=tau):
-        if jnp.isclose(obj_old, obj, rtol=tau):
+        if pof.convergence_criteria.crit(
+            obj, obj_old, nll, nll_old, states, states_old, rtol=tau, atol=tau
+        ):
             reg *= reg_fact
             tau *= tau_fact
             if reg == 0:

@@ -20,32 +20,37 @@ def solve(*, f, y0, ts, order, init="prior", calibrate=True, maxiters=10_000):
     states = get_initial_trajectory(setup, method=init)
 
     j0 = jnp.zeros(())
-    states, nll, obj, ssq, nll_old, obj_old, k = val = (
+    states, nll, obj, ssq, nll_old, obj_old, states_old, k = val = (
         states,
         j0,
         j0,
         j0,
-        j0 + 1,
-        j0 + 1,
+        states,
+        j0,
+        j0,
         j0,
     )
 
     @jax.jit
     def cond(val):
-        states, nll, obj, ssq, nll_old, obj_old, k = val
-        return ~jnp.logical_or(
-            pof.convergence_criteria.crit(obj, obj_old, nll, nll_old), k > maxiters
+        # continue while loop while this is true
+        states, nll, obj, ssq, states_old, nll_old, obj_old, k = val
+        first_iteration = k < 1
+        not_maxiter = k <= maxiters
+        converged = pof.convergence_criteria.crit(
+            obj, obj_old, nll, nll_old, states, states_old
         )
+        return jnp.logical_or(first_iteration, jnp.logical_and(~converged, not_maxiter))
 
     @jax.jit
     def body(val):
-        states, nll_old, obj_old, _, _, _, k = val
+        states_old, nll_old, obj_old, _, _, _, _, k = val
 
-        states, nll, obj, ssq = ieks_step(om=om, dtm=dtm, x0=x0, states=states)
+        states, nll, obj, ssq = ieks_step(om=om, dtm=dtm, x0=x0, states=states_old)
 
-        return states, nll, obj, ssq, nll_old, obj_old, k + 1
+        return states, nll, obj, ssq, states_old, nll_old, obj_old, k + 1
 
-    states, nll, obj, ssq, _, _, k = val = jax.lax.while_loop(cond, body, val)
+    states, nll, obj, ssq, _, _, _, k = val = jax.lax.while_loop(cond, body, val)
     info_dict = {
         "iterations": k,
         "nll": nll,
