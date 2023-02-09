@@ -9,6 +9,7 @@ import diffrax
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
+import plac
 
 from pof.ivp import lotkavolterra, fitzhughnagumo, logistic, vanderpol
 from pof.diffrax import solve_diffrax, get_ts_ys
@@ -70,7 +71,7 @@ def _ieks(order, maxiters):
                 init="constant",
                 maxiters=maxiters,
             )
-            return ys.mean, info_dict, 0
+            return ys.mean, info_dict, jnp.isnan(ys.mean).any()
 
         return inner
 
@@ -87,15 +88,19 @@ def _eks(order):
                 ts=ts,
                 order=order,
             )
-            return ys.mean, info_dict, 0
+            return ys.mean, info_dict, jnp.isnan(ys.mean).any()
 
         return inner
 
     return f
 
 
-IVP = ivp = fitzhughnagumo()
-Ns = 2 ** jnp.arange(8, 18)
+SETUPS = {
+    "fhn": (fitzhughnagumo(), 2 ** jnp.arange(8, 18)),
+    "fhn500": (fitzhughnagumo(tmax=500), 2 ** jnp.arange(10, 20)),
+    "logistic": (logistic(), 2 ** jnp.arange(2, 16)),
+    "vdp": (vanderpol(tmax=10, stiffness_constant=1e2), 2 ** jnp.arange(8, 20)),
+}
 METHODS = {
     "DP5": _diffrax(diffrax.Dopri5()),
     "Heun": _diffrax(diffrax.Heun()),
@@ -119,7 +124,11 @@ METHODS = {
 }
 
 
-def main():
+@plac.flg("save", "Save data to csv file")
+def main(setupname, save=False):
+    print(f"[STARTING EXPERIMENT] setupname={setupname}")
+    IVP, Ns = SETUPS[setupname]
+    # Ns_test = Ns = 2 ** jnp.arange(10, 12)
 
     ref = solve_diffrax(IVP.f, IVP.y0, IVP.t_span, atol=1e-20, rtol=1e-20)
     yref_final = get_ts_ys(ref)[1][-1]
@@ -127,6 +136,7 @@ def main():
     def evaluate_method(method, methodname, Ns):
         results = defaultdict(list)
         for N in tqdm(Ns):
+            print(f"[{methodname}] N={N}")
             ts = jnp.linspace(IVP.t0, IVP.tmax, N)
             f = lambda: method(ts)
             ys, info, status = f()
@@ -158,18 +168,19 @@ def main():
     df = pd.DataFrame({"Ns": Ns})
 
     for k, v in METHODS.items():
-        print(f"\nEvaluating {k}\n")
+        print(f"\n[{k}] Start Evaluation\n")
         results = evaluate_method(v(IVP), k, Ns)
         for k2, v2 in results.items():
             df[f"{k}_{k2}"] = v2
 
-    return df
+    if save:
+        save_df(df, setupname)
 
 
-def save_df(df):
+def save_df(df, setupname):
     # save dataframe to csv file in the same directory as this script
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    filename = os.path.join(current_dir, f"data_{IVP_NAME}.csv")
+    filename = os.path.join(current_dir, f"data_{setupname}.csv")
     df.to_csv(filename, index=False)
     print(f"Saved data to {filename}")
 
@@ -211,6 +222,4 @@ def plot(df):
 
 
 if __name__ == "__main__":
-    df = main()
-    save_df(df)
-    # plot(df)
+    plac.call(main)
