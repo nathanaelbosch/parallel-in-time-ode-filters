@@ -15,6 +15,8 @@ from pof.ivp import *
 from pof.diffrax import solve_diffrax, get_ts_ys
 from pof.solver import solve, sequential_eks_solve
 
+assert jax.devices()[0].platform == "gpu"
+
 
 def timeit(f, N):
     times = []
@@ -99,7 +101,8 @@ SETUPS = {
     "fhn": (fitzhughnagumo(), 2 ** jnp.arange(9, 23)),
     "fhn500": (fitzhughnagumo(tmax=500), 2 ** jnp.arange(9, 23)),
     "logistic": (logistic(), 2 ** jnp.arange(8, 23)),
-    "vdp": (vanderpol(tmax=10, stiffness_constant=1e2), 2 ** jnp.arange(9, 23)),
+    "vdp1": (vanderpol(stiffness_constant=1e1), 2 ** jnp.arange(9, 23)),
+    "vdp2": (vanderpol(stiffness_constant=1e2), 2 ** jnp.arange(9, 23)),
     "rigidbody": (rigid_body(), 2 ** jnp.arange(9, 23)),
     "seir": (seir(), 2 ** jnp.arange(9, 23)),
 }
@@ -133,7 +136,7 @@ def main(setupname, save=False):
     # Ns_test = Ns = 2 ** jnp.arange(10, 12)
 
     ref = solve_diffrax(
-        IVP.f, IVP.y0, IVP.t_span, solver=diffrax.Kvaerono5(), atol=1e-20, rtol=1e-20
+        IVP.f, IVP.y0, IVP.t_span, solver=diffrax.Kvaerno5, atol=1e-20, rtol=1e-20
     )
     yref_final = get_ts_ys(ref)[1][-1]
 
@@ -144,6 +147,7 @@ def main(setupname, save=False):
             ts = jnp.linspace(IVP.t0, IVP.tmax, N)
             f = lambda: method(ts)
             ys, info, status = f()
+            assert ys.device.platform == "gpu"
             if status != 0:
                 t = np.nan
                 rmse_final = np.nan
