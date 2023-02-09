@@ -18,16 +18,18 @@ plt.rcParams.update(
         "axes.grid.which": "major",
     }
 )
+DIR = "./experiments/4_work_precision_diagram"
 
-current_dir = "./experiments/4_work_precision_diagram"
-filename = os.path.join(current_dir, "data.csv")
-df = pd.read_csv(filename)
-
-keys = [c[:-5] for c in df.columns if "time" in c]
+# keys = [c[:-5] for c in df.columns if "time" in c]
 # classic_keys = [c for c in keys if "IEKS" not in c and "EKS" not in c]
 # eks_keys = [c for c in keys if "EKS" in c and "IEKS" not in c]
 # ieks_keys = [c for c in keys if "IEKS" in c]
-classic_keys = ["ImplicitEuler", "KV3", "KV5"]
+classic_keys = [
+    "ImplicitEuler",
+    "KV3",
+    "KV5",
+    "DP5",
+]
 eks_keys = [
     "EKS(1)",
     "EKS(2)",
@@ -111,31 +113,50 @@ def plot(df):
     fig, ax = plt.subplots(2, 2)
 
     # 1: error vs runtime
+    # plot_xy(
+    #     df=df,
+    #     x=lambda k: f"{k}_runtime",
+    #     y=lambda k: f"{k}_rmse_final",
+    #     ax=ax[0, 0],
+    # )
+    # ax[0, 0].set_xlabel("Runtime [s]")
+    # ax[0, 0].set_ylabel("RMSE (final)")
+
     plot_xy(
         df=df,
-        x=lambda k: f"{k}_time",
-        y=lambda k: f"{k}_rmse",
+        x=lambda k: f"{k}_runtime",
+        y=lambda k: f"{k}_rmse_traj",
         ax=ax[0, 0],
     )
     ax[0, 0].set_xlabel("Runtime [s]")
-    ax[0, 0].set_ylabel("RMSE")
+    ax[0, 0].set_ylabel("RMSE (trajectory)")
 
     # 2: error vs N
+    # plot_xy(
+    #     df=df,
+    #     x=lambda k: f"Ns",
+    #     y=lambda k: f"{k}_rmse_final",
+    #     ax=ax[0, 1],
+    #     labels=False,
+    # )
+    # ax[0, 1].set_xlabel("Number of steps")
+    # ax[0, 1].set_ylabel("RMSE (final)")
+
     plot_xy(
         df=df,
         x=lambda k: f"Ns",
-        y=lambda k: f"{k}_rmse",
+        y=lambda k: f"{k}_rmse_traj",
         ax=ax[0, 1],
         labels=False,
     )
     ax[0, 1].set_xlabel("Number of steps")
-    ax[0, 1].set_ylabel("RMSE")
+    ax[0, 1].set_ylabel("RMSE (trajectory)")
 
     # 3: runtime vs N
     plot_xy(
         df=df,
         x=lambda k: f"Ns",
-        y=lambda k: f"{k}_time",
+        y=lambda k: f"{k}_runtime",
         ax=ax[1, 0],
         labels=False,
     )
@@ -168,8 +189,14 @@ def plot(df):
     return fig
 
 
-replace_large_with_inf(df)
-fig = plot(df)
-# save high resolution figure
-fig.savefig(os.path.join(current_dir, "wpd.png"), bbox_inches="tight", dpi=300)
-fig.savefig(os.path.join(current_dir, "wpd.pdf"), bbox_inches="tight")
+# ivpname = "logistic"
+ivpname = "fhn"
+for ivpname in ["logistic", "fhn"]:
+    filename = os.path.join(DIR, f"data_{ivpname}.csv")
+    df = pd.read_csv(filename)
+    replace_large_with_inf(df)
+    fig = plot(df)
+    # save high resolution figure
+    fig.savefig(os.path.join(DIR, f"wpd_{ivpname}.png"), bbox_inches="tight", dpi=300)
+    fig.savefig(os.path.join(DIR, f"wpd_{ivpname}.pdf"), bbox_inches="tight")
+    print(f"Saved {ivpname}")

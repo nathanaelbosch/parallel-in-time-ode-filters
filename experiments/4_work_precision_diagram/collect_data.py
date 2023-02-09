@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 
-from pof.ivp import lotkavolterra, fitzhughnagumo
+from pof.ivp import lotkavolterra, fitzhughnagumo, logistic, vanderpol
 from pof.diffrax import solve_diffrax, get_ts_ys
 from pof.solver import solve, sequential_eks_solve
 
@@ -33,9 +33,15 @@ def solve_diffrax_(f, y0, ts, solver):
         t1=ts[-1],
         dt0=ts[1] - ts[0],
         y0=y0,
-        saveat=diffrax.SaveAt(steps=True, t0=True, dense=True),
+        saveat=diffrax.SaveAt(
+            # ts=ts,
+            steps=True,
+            t0=True,
+            t1=True,
+            dense=True,
+        ),
         stepsize_controller=diffrax.ConstantStepSize(),
-        max_steps=2 * ts.shape[0],
+        max_steps=ts.shape[0] - 1,
         throw=False,
     )
     return sol.ys, {}, sol.result
@@ -110,63 +116,41 @@ METHODS = {
     "IEKS(2)": _ieks(2, 1000),
     "IEKS(3)": _ieks(3, 1000),
     "IEKS(5)": _ieks(5, 1000),
-    # "IEKS(1)_10": _ieks(1, 10),
-    # "IEKS(1)_20": _ieks(1, 20),
-    # "IEKS(1)_50": _ieks(1, 50),
-    # "IEKS(1)_100": _ieks(1, 100),
-    # "IEKS(1)_200": _ieks(1, 200),
-    # "IEKS(1)_500": _ieks(1, 500),
-    # "IEKS(1)_1000": _ieks(1, 1000),
-    # "IEKS(2)_10": _ieks(2, 10),
-    # "IEKS(2)_20": _ieks(2, 20),
-    # "IEKS(2)_50": _ieks(2, 50),
-    # "IEKS(2)_100": _ieks(2, 100),
-    # "IEKS(2)_200": _ieks(2, 200),
-    # "IEKS(2)_500": _ieks(2, 500),
-    # "IEKS(2)_1000": _ieks(2, 1000),
-    # "IEKS(3)_10": _ieks(3, 10),
-    # "IEKS(3)_20": _ieks(3, 20),
-    # "IEKS(3)_50": _ieks(3, 50),
-    # "IEKS(3)_100": _ieks(3, 100),
-    # "IEKS(3)_200": _ieks(3, 200),
-    # "IEKS(3)_500": _ieks(3, 500),
-    # "IEKS(3)_1000": _ieks(3, 1000),
-    # "IEKS(5)_10": _ieks(5, 10),
-    # "IEKS(5)_20": _ieks(5, 20),
-    # "IEKS(5)_50": _ieks(5, 50),
-    # "IEKS(5)_100": _ieks(5, 100),
-    # "IEKS(5)_200": _ieks(5, 200),
-    # "IEKS(5)_500": _ieks(5, 500),
-    # "IEKS(5)_1000": _ieks(5, 1000),
 }
 
 
 def main():
 
-    yref_final = get_ts_ys(
-        solve_diffrax(ivp.f, ivp.y0, ivp.t_span, atol=1e-20, rtol=1e-20)
-    )[1][-1]
+    ref = solve_diffrax(IVP.f, IVP.y0, IVP.t_span, atol=1e-20, rtol=1e-20)
+    yref_final = get_ts_ys(ref)[1][-1]
 
-    def evaluate_method(method, Ns):
+    def evaluate_method(method, methodname, Ns):
         results = defaultdict(list)
         for N in tqdm(Ns):
-            ts = jnp.linspace(0, ivp.tmax, N)
+            ts = jnp.linspace(IVP.t0, IVP.tmax, N)
             f = lambda: method(ts)
             ys, info, status = f()
             if status != 0:
                 t = np.nan
-                rmse = np.nan
+                rmse_final = np.nan
+                rmse_traj = np.nan
             else:
                 t = timeit(f, 3)
                 idxs = jnp.isfinite(ys[:, 0])
-                y = ys[idxs][-1]
-                rmse = jnp.linalg.norm(y - yref_final)
-            print(t)
-            print(rmse)
-            results["runtimes"].append(t)
-            results["rmses"].append(rmse)
+                ys = ys[idxs]
+                rmse_final = jnp.linalg.norm(ys[-1] - yref_final)
+                yref = jax.vmap(ref.evaluate)(ts)
+                rmse_traj = jax.vmap(jnp.linalg.norm)(ys - yref).mean()
+
+            print(f"[{methodname}] runtime: {t}")
+            print(f"[{methodname}] rmse_final: {rmse_final}")
+            print(f"[{methodname}] rmse_traj: {rmse_traj}")
+            results["runtime"].append(t)
+            results["rmse_final"].append(rmse_final)
+            results["rmse_traj"].append(rmse_traj)
             if "iterations" in info.keys():
                 results["iterations"].append(info["iterations"])
+                print(f"[{methodname}] iterations: {info['iterations']}")
 
         return results
 
@@ -175,11 +159,9 @@ def main():
 
     for k, v in METHODS.items():
         print(f"\nEvaluating {k}\n")
-        results = evaluate_method(v(IVP), Ns)
-        df[f"{k}_time"] = results["runtimes"]
-        df[f"{k}_rmse"] = results["rmses"]
-        if "iterations" in results.keys():
-            df[f"{k}_iterations"] = results["iterations"]
+        results = evaluate_method(v(IVP), k, Ns)
+        for k2, v2 in results.items():
+            df[f"{k}_{k2}"] = v2
 
     return df
 
@@ -187,7 +169,7 @@ def main():
 def save_df(df):
     # save dataframe to csv file in the same directory as this script
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    filename = os.path.join(current_dir, "data.csv")
+    filename = os.path.join(current_dir, f"data_{IVP_NAME}.csv")
     df.to_csv(filename, index=False)
     print(f"Saved data to {filename}")
 
