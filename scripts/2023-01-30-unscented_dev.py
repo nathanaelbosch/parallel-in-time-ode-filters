@@ -19,14 +19,14 @@ from pof.solver import solve
 
 
 ivp = lotkavolterra()
-order = 3
+order = 2
 dt = 1e-1
 ts = jnp.arange(ivp.t0, ivp.tmax + dt, dt)
 
 _iter, setup = ieks_iterator(f=ivp.f, y0=ivp.y0, ts=ts, order=order)
 
 om = setup["om"]
-traj = get_initial_trajectory(setup, method="prior")
+traj = get_initial_trajectory(setup, method="constant")
 traj = MVNSqrt(traj.mean[:2], traj.chol[:2])
 # traj = get_initial_trajectory(setup, method="prior")
 
@@ -44,10 +44,10 @@ dom = vlinearize(om, lin_traj)
 # ys_par, info_par = solve(f=ivp.f, y0=ivp.y0, ts=ts, order=3, init="prior")
 
 
-from pof.linearization.unscented import *
-from pof.linearization.unscented import _get_sigma_points, _cov
+# from pof.linearization.unscented import *
+# from pof.linearization.unscented import _get_sigma_points, _cov
 
-x = MVNSqrt(traj.mean[1], traj.chol[1])
-f = om
-alpha, beta, kappa = 1.0, 0.0, None
-linearize_unscented(f, x)
+# x = MVNSqrt(traj.mean[1], traj.chol[1])
+# f = om
+# alpha, beta, kappa = 1.0, 0.0, None
+# linearize_unscented(f, x)

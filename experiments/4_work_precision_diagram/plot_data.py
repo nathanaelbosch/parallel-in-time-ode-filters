@@ -20,15 +20,11 @@ plt.rcParams.update(
 )
 DIR = "./experiments/4_work_precision_diagram"
 
-# keys = [c[:-5] for c in df.columns if "time" in c]
-# classic_keys = [c for c in keys if "IEKS" not in c and "EKS" not in c]
-# eks_keys = [c for c in keys if "EKS" in c and "IEKS" not in c]
-# ieks_keys = [c for c in keys if "IEKS" in c]
 classic_keys = [
     "ImplicitEuler",
     "KV3",
     "KV5",
-    "DP5",
+    # "DP5",
 ]
 eks_keys = [
     "EKS(1)",
@@ -189,8 +185,6 @@ def plot(df):
     return fig
 
 
-# ivpname = "logistic"
-ivpname = "fhn"
 for ivpname in ["logistic", "fhn"]:
     filename = os.path.join(DIR, f"data_{ivpname}.csv")
     df = pd.read_csv(filename)

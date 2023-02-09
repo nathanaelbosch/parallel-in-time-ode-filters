@@ -14,16 +14,25 @@ def linearize_at_previous_states(om, prev_states):
     vlinearize = jax.vmap(
         linearize,
         # linearize_unscented,
-        # lambda f, x: linearize_regularized(f, x, 1e3),
+        # lambda f, x: linearize_regularized(f, x, 1e-1),
         in_axes=[None, 0],
     )
     dom = vlinearize(om, lin_traj)
     return dom
 
 
+@jax.vmap
+def inflate(state):
+    return MVNSqrt(
+        state.mean,
+        state.chol + jax.numpy.eye(state.chol.shape[0]) * 1e-3,
+    )
+
+
 @partial(jax.jit, static_argnames=["om", "calibrate"])
 def ieks_step(*, om, dtm, x0, states, calibrate=True):
     dom = linearize_at_previous_states(om, states)
+    # dom = linearize_at_previous_states(om, inflate(states))
     states, nll, obj, ssq = linear_filtsmooth(x0, dtm, dom)
     if calibrate:
         chols = ssq**0.5 * states.chol

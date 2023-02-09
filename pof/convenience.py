@@ -17,6 +17,10 @@ def set_up_solver(*, f, y0, ts, order):
 
     iwp = IWP(num_derivatives=order, wiener_process_dimension=y0.shape[0])
     dtm = jax.vmap(lambda _: TransitionModel(*preconditioned_discretize(iwp)))(ts[1:])
+    # N = dtm.QL.shape[0]
+    # dtm = TransitionModel(
+    #     dtm.F, (1.0 ** jnp.linspace(ts[0], ts[-1], N)[:, None, None]) * dtm.QL
+    # )
     P, PI = nordsieck_preconditioner(iwp, dt)
 
     E0, E1 = projection_matrix(iwp, 0), projection_matrix(iwp, 1)
