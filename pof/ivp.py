@@ -81,3 +81,32 @@ def rober(t0=0.0, tmax=1e11, y0=None, p=None):
         )
 
     return tornadox.ivp.InitialValueProblem(f=f, t0=t0, tmax=tmax, y0=y0)
+
+
+def rigid_body(t0=0.0, tmax=20.0, y0=None, p=None):
+    y0 = y0 or jnp.array([1.0, 0.0, 0.9])
+    p = p or jnp.array([-2.0, 1.25, -0.5])
+
+    @jax.jit
+    def f(_, y, p=p):
+        return jnp.array([p[0] * y[1] * y[2], p[1] * y[0] * y[2], p[2] * y[0] * y[1]])
+
+    return tornadox.ivp.InitialValueProblem(f=f, t0=t0, tmax=tmax, y0=y0)
+
+
+def seir(t0=0.0, tmax=200.0, y0=None, p=None):
+    y0 = y0 or jnp.array([998.0, 1.0, 1.0, 1.0])
+    p = p or jnp.array([0.3, 0.3, 0.1, y0.sum()])
+
+    @jax.jit
+    def f(_, y, p=p):
+        return jnp.array(
+            [
+                -p[1] * y[0] * y[2] / p[3],
+                p[1] * y[0] * y[2] / p[3] - p[0] * y[1],
+                p[0] * y[1] - p[2] * y[2],
+                p[2] * y[2],
+            ]
+        )
+
+    return tornadox.ivp.InitialValueProblem(f=f, t0=t0, tmax=tmax, y0=y0)

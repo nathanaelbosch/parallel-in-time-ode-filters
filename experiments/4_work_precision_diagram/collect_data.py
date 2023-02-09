@@ -11,7 +11,7 @@ import numpy as np
 from tqdm import tqdm
 import plac
 
-from pof.ivp import lotkavolterra, fitzhughnagumo, logistic, vanderpol
+from pof.ivp import *
 from pof.diffrax import solve_diffrax, get_ts_ys
 from pof.solver import solve, sequential_eks_solve
 
