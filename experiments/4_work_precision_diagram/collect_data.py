@@ -15,6 +15,8 @@ from pof.ivp import *
 from pof.diffrax import solve_diffrax, get_ts_ys
 from pof.solver import solve, sequential_eks_solve
 
+print(f"jax.devices(): {jax.devices()}")
+print(f"[d.platform for d in jax.devices()]: {[d.platform for d in jax.devices()]}")
 assert jax.devices()[0].platform == "gpu"
 
 
@@ -147,7 +149,7 @@ def main(setupname, save=False):
             ts = jnp.linspace(IVP.t0, IVP.tmax, N)
             f = lambda: method(ts)
             ys, info, status = f()
-            assert ys.device.platform == "gpu"
+            assert ys.device().platform == "gpu"
             if status != 0:
                 t = np.nan
                 rmse_final = np.nan
