@@ -100,13 +100,13 @@ def _eks(order):
 
 
 SETUPS = {
-    "fhn": (fitzhughnagumo(), 2 ** jnp.arange(9, 23)),
-    "fhn500": (fitzhughnagumo(tmax=500), 2 ** jnp.arange(9, 23)),
-    "logistic": (logistic(), 2 ** jnp.arange(8, 23)),
-    "vdp1": (vanderpol(stiffness_constant=1e1), 2 ** jnp.arange(9, 23)),
-    "vdp2": (vanderpol(stiffness_constant=1e2), 2 ** jnp.arange(9, 23)),
-    "rigidbody": (rigid_body(), 2 ** jnp.arange(9, 23)),
-    "seir": (seir(), 2 ** jnp.arange(9, 23)),
+    "fhn": (fitzhughnagumo(), 2 ** jnp.arange(9, 20)),
+    "fhn500": (fitzhughnagumo(tmax=500), 2 ** jnp.arange(9, 20)),
+    "logistic": (logistic(), 2 ** jnp.arange(8, 20)),
+    "vdp1": (vanderpol(stiffness_constant=1e1), 2 ** jnp.arange(9, 20)),
+    "vdp2": (vanderpol(stiffness_constant=1e2), 2 ** jnp.arange(9, 20)),
+    "rigidbody": (rigid_body(), 2 ** jnp.arange(9, 20)),
+    "seir": (seir(), 2 ** jnp.arange(9, 20)),
 }
 METHODS = {
     # "DP5": _diffrax(diffrax.Dopri5()),

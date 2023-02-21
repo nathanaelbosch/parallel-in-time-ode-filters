@@ -30,18 +30,18 @@ eks_keys = [
     "EKS(1)",
     "EKS(2)",
     "EKS(3)",
-    "EKS(5)",
+    # "EKS(5)",
 ]
 ieks_keys = [
     "IEKS(1)",
     "IEKS(2)",
     "IEKS(3)",
-    "IEKS(5)",
+    # "IEKS(5)",
 ]
 
 MAXITER = 1000
 
-CLASSIC_MARKERS = ["o", "s", "v", "x", "D", "P", "X", "d", "p", "h", "H", "8"]
+CLASSIC_MARKERS = ["s", "v", "D", "P", "X", "d", "p", "h", "H", "8"]
 
 
 def get_order_and_maxiter(k):
@@ -185,7 +185,7 @@ def plot(df):
     return fig
 
 
-for ivpname in ["logistic", "fhn"]:
+for ivpname in ["logistic", "fhn", "fhn500", "vdp1", "seir", "rigidbody"]:
     filename = os.path.join(DIR, f"data_{ivpname}.csv")
     df = pd.read_csv(filename)
     replace_large_with_inf(df)
