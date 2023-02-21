@@ -16,12 +16,6 @@ from pof.ivp import *
 from pof.diffrax import solve_diffrax, get_ts_ys
 from pof.solver import solve, sequential_eks_solve
 
-print(f"jax.devices(): {jax.devices()}")
-print(f"[d.platform for d in jax.devices()]: {[d.platform for d in jax.devices()]}")
-device = jax.devices()[0]
-assert device.platform == "gpu"
-gpu_str = device.device_kind.replace(" ", "_")
-
 
 def timeit(f, N):
     times = []
@@ -152,7 +146,15 @@ METHODS = {
 
 
 @plac.flg("save", "Save data to csv file")
-def main(setupname, save=False):
+@plac.flg("gpu_nocheck", "Do not assert that the GPU is working (when using CPU nodes)")
+def main(setupname, save=False, gpu_nocheck=False):
+
+    print(f"jax.devices(): {jax.devices()}")
+    print(f"[d.platform for d in jax.devices()]: {[d.platform for d in jax.devices()]}")
+    device = jax.devices()[0]
+    assert gpu_nocheck or device.platform == "gpu"
+    devicename = device.device_kind.replace(" ", "_")
+
     print(f"[STARTING EXPERIMENT] setupname={setupname}")
     IVP, Ns = SETUPS[setupname]
 
@@ -203,13 +205,13 @@ def main(setupname, save=False):
             df[f"{k}_{k2}"] = v2
 
     if save:
-        save_df(df, setupname)
+        save_df(df, setupname, devicename)
 
 
-def save_df(df, setupname):
+def save_df(df, setupname, devicename):
     # save dataframe to csv file in the same directory as this script
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    filename = os.path.join(current_dir, f"data_{setupname}_{gpu_str}.csv")
+    filename = os.path.join(current_dir, f"data_{setupname}_{devicename}.csv")
     df.to_csv(filename, index=False)
     print(f"Saved data to {filename}")
 
