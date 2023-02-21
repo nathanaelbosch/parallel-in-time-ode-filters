@@ -10,6 +10,7 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 import plac
+from scipy.integrate import solve_ivp
 
 from pof.ivp import *
 from pof.diffrax import solve_diffrax, get_ts_ys
@@ -63,7 +64,7 @@ def _diffrax(solver):
     return f
 
 
-def _ieks(order, maxiters):
+def _ieks(order, maxiters, sequential=False):
     def f(ivp):
         @jax.jit
         def inner(ts):
@@ -74,6 +75,7 @@ def _ieks(order, maxiters):
                 order=order,
                 init="constant",
                 maxiters=maxiters,
+                sequential=sequential,
             )
             return ys.mean, info_dict, jnp.isnan(ys.mean).any()
 
@@ -99,6 +101,19 @@ def _eks(order):
     return f
 
 
+def _scipy(solver):
+    def f(ivp):
+        def inner(ts):
+            dt = ts[1] - ts[0]
+            tspan = (ts[0], ts[-1])
+            sol = solve_ivp(ivp.f, ivp.t_span, ivp.y0, method=solver, max_step=dt)
+            return sol.y, {}, sol.status
+
+        return inner
+
+    return f
+
+
 SETUPS = {
     "fhn": (fitzhughnagumo(), 2 ** jnp.arange(9, 20)),
     "fhn500": (fitzhughnagumo(tmax=500), 2 ** jnp.arange(9, 20)),
@@ -109,7 +124,7 @@ SETUPS = {
     "seir": (seir(), 2 ** jnp.arange(9, 20)),
 }
 METHODS = {
-    # "DP5": _diffrax(diffrax.Dopri5()),
+    "DP5": _diffrax(diffrax.Dopri5()),
     # "Heun": _diffrax(diffrax.Heun()),
     "ImplicitEuler": _diffrax(
         diffrax.ImplicitEuler(diffrax.NewtonNonlinearSolver(rtol=1e-6, atol=1e-9))
@@ -120,14 +135,17 @@ METHODS = {
     "KV5": _diffrax(
         diffrax.Kvaerno5(diffrax.NewtonNonlinearSolver(rtol=1e-6, atol=1e-9))
     ),
+    "SciPy RK45": _scipy("RK45"),
+    "SciPy LSODA": _scipy("LSODA"),
     "EKS(1)": _eks(1),
     "EKS(2)": _eks(2),
     "EKS(3)": _eks(3),
-    # "EKS(5)": _eks(5),
     "IEKS(1)": _ieks(1, 1000),
     "IEKS(2)": _ieks(2, 1000),
     "IEKS(3)": _ieks(3, 1000),
-    # "IEKS(5)": _ieks(5, 1000),
+    "sIEKS(1)": _ieks(1, 1000, sequential=True),
+    "sIEKS(2)": _ieks(2, 1000, sequential=True),
+    "sIEKS(3)": _ieks(3, 1000, sequential=True),
 }
 
 
@@ -135,7 +153,6 @@ METHODS = {
 def main(setupname, save=False):
     print(f"[STARTING EXPERIMENT] setupname={setupname}")
     IVP, Ns = SETUPS[setupname]
-    # Ns_test = Ns = 2 ** jnp.arange(10, 12)
 
     ref = solve_diffrax(
         IVP.f, IVP.y0, IVP.t_span, solver=diffrax.Kvaerno5, atol=1e-20, rtol=1e-20
@@ -149,7 +166,7 @@ def main(setupname, save=False):
             ts = jnp.linspace(IVP.t0, IVP.tmax, N)
             f = lambda: method(ts)
             ys, info, status = f()
-            assert ys.device().platform == "gpu"
+            # assert ys.device().platform == "gpu"
             if status != 0:
                 t = np.nan
                 rmse_final = np.nan
