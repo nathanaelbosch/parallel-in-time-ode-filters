@@ -8,7 +8,9 @@ from pof.step import ieks_step
 from pof.utils import MVNSqrt, _gmul
 
 
-def solve(*, f, y0, ts, order, init="prior", calibrate=True, maxiters=10_000):
+def solve(
+    *, f, y0, ts, order, init="prior", calibrate=True, maxiters=10_000, sequential=False
+):
     setup = set_up_solver(f=f, y0=y0, ts=ts, order=order)
 
     dtm = setup["dtm"]
@@ -46,7 +48,9 @@ def solve(*, f, y0, ts, order, init="prior", calibrate=True, maxiters=10_000):
     def body(val):
         states_old, nll_old, obj_old, _, _, _, _, k = val
 
-        states, nll, obj, ssq = ieks_step(om=om, dtm=dtm, x0=x0, states=states_old)
+        states, nll, obj, ssq = ieks_step(
+            om=om, dtm=dtm, x0=x0, states=states_old, sequential=sequential
+        )
 
         return states, nll, obj, ssq, states_old, nll_old, obj_old, k + 1
 
@@ -77,8 +81,8 @@ def sequential_eks_solve(*, f, y0, ts, order, return_full_states=False, calibrat
     om = setup["om"]
     x0 = setup["x0"]
 
-    states, nll, ssq = seq_fs(x0, dtm, om)
-    info_dict = {"nll": nll, "sigma_squared": ssq, "calibrated": False}
+    states, nll, obj, ssq = seq_fs(x0, dtm, om)
+    info_dict = {"nll": nll, "obj": obj, "sigma_squared": ssq, "calibrated": False}
 
     if calibrate:
         chols = ssq**0.5 * states.chol

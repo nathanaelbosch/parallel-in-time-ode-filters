@@ -3,7 +3,8 @@ from functools import partial
 import jax
 
 from pof.observations import linearize, linearize_regularized
-from pof.parallel_filtsmooth import linear_filtsmooth
+from pof.parallel_filtsmooth import linear_filtsmooth as parallel_linear_filtsmooth
+from pof.sequential_filtsmooth import linear_filtsmooth as sequential_linear_filtsmooth
 from pof.linearization.unscented import linearize_unscented
 from pof.utils import MVNSqrt
 
@@ -29,11 +30,15 @@ def inflate(state):
     )
 
 
-@partial(jax.jit, static_argnames=["om", "calibrate"])
-def ieks_step(*, om, dtm, x0, states, calibrate=True):
+@partial(jax.jit, static_argnames=["om", "calibrate", "sequential"])
+def ieks_step(*, om, dtm, x0, states, calibrate=True, sequential=False):
     dom = linearize_at_previous_states(om, states)
     # dom = linearize_at_previous_states(om, inflate(states))
-    states, nll, obj, ssq = linear_filtsmooth(x0, dtm, dom)
+    if not sequential:
+        states, nll, obj, ssq = parallel_linear_filtsmooth(x0, dtm, dom)
+    else:
+        states, nll, obj, ssq = sequential_linear_filtsmooth(x0, dtm, dom)
+
     if calibrate:
         chols = ssq**0.5 * states.chol
         states = MVNSqrt(states.mean, chols)

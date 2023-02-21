@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 import jax.scipy.linalg as jlag
 
-from pof.utils import MVNSqrt, tria
+from pof.utils import MVNSqrt, objective_function_value, tria
 
 
 def smoothing(discrete_transition_models, filter_trajectory):
@@ -21,7 +21,11 @@ def smoothing(discrete_transition_models, filter_trajectory):
     smoothed_states = jax.tree_map(
         lambda a, b: jnp.concatenate([a, b[None, ...]]), smoothed_states, last_state
     )
-    return smoothed_states
+    means = smoothed_states.mean
+    obj = jax.vmap(objective_function_value)(
+        means[:-1], means[1:], discrete_transition_models
+    )
+    return smoothed_states, jnp.sum(obj)
 
 
 @jax.jit

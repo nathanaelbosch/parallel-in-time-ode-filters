@@ -30,6 +30,32 @@ def extended_kalman_filter(
     return MVNSqrt(means, cholcovs), ell, ssq
 
 
+def linear_noiseless_filter(
+    x0, discrete_transition_models, discrete_observation_models
+):
+    predict = _sqrt_predict
+    update = _sqrt_update
+
+    def body(carry, inp):
+        x, ssq, ell = carry
+        (F, QL), (H, b, cholR) = inp
+
+        x = predict(F, QL, x)
+        # H, b, R = linearize(continuous_observation_model, x)
+        x, ell_inc, ssq_inc = update(H, cholR, b, x)
+
+        return (x, ssq + ssq_inc, ell + ell_inc), x
+
+    (_, ssq, ell), xs = jax.lax.scan(
+        body, (x0, 0.0, 0.0), (discrete_transition_models, discrete_observation_models)
+    )
+    N = discrete_transition_models.F.shape[0]
+    ssq = ssq / N
+    means = jnp.concatenate([x0.mean[None, ...], xs.mean])
+    cholcovs = jnp.concatenate([x0.chol[None, ...], xs.chol])
+    return MVNSqrt(means, cholcovs), ell, ssq
+
+
 @jax.jit
 def _sqrt_predict(F, cholQ, x):
     m, cholP = x
