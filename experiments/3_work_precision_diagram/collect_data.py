@@ -111,13 +111,13 @@ def _scipy(solver):
 
 
 SETUPS = {
-    "fhn": (fitzhughnagumo(), 2 ** jnp.arange(9, 20)),
-    "fhn500": (fitzhughnagumo(tmax=500), 2 ** jnp.arange(9, 20)),
-    "logistic": (logistic(), 2 ** jnp.arange(8, 20)),
-    "vdp1": (vanderpol(stiffness_constant=1e1), 2 ** jnp.arange(9, 20)),
-    "vdp2": (vanderpol(stiffness_constant=1e2), 2 ** jnp.arange(9, 20)),
-    "rigidbody": (rigid_body(), 2 ** jnp.arange(9, 20)),
-    "seir": (seir(), 2 ** jnp.arange(9, 20)),
+    "fhn": (fitzhughnagumo(), 2 ** jnp.arange(7, 22)),
+    # "fhn500": (fitzhughnagumo(tmax=500), 2 ** jnp.arange(9, 20)),
+    "logistic": (logistic(), 2 ** jnp.arange(4, 20)),
+    # "vdp1": (vanderpol(stiffness_constant=1e1), 2 ** jnp.arange(9, 20)),
+    # "vdp2": (vanderpol(stiffness_constant=1e2), 2 ** jnp.arange(9, 20)),
+    "rigidbody": (rigid_body(), 2 ** jnp.arange(7, 22)),
+    # "seir": (seir(), 2 ** jnp.arange(9, 20)),
 }
 METHODS = {
     "DP5": _diffrax(diffrax.Dopri5()),
