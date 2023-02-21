@@ -97,26 +97,29 @@ def _eks(order):
     return f
 
 
-def _scipy(solver):
-    def f(ivp):
-        def inner(ts):
-            dt = ts[1] - ts[0]
-            tspan = (ts[0], ts[-1])
-            sol = solve_ivp(ivp.f, ivp.t_span, ivp.y0, method=solver, max_step=dt)
-            return sol.y, {}, sol.status
+# fixed step scipy does not actually work!
+# def _scipy(solver):
+#     def f(ivp):
+#         def inner(ts):
+#             dt = ts[1] - ts[0]
+#             tspan = (ts[0], ts[-1])
+#             sol = solve_ivp(ivp.f, ivp.t_span, ivp.y0, method=solver, max_step=dt)
+#             return sol.y, {}, sol.status
 
-        return inner
+#         return inner
 
-    return f
+#     return f
 
 
 SETUPS = {
-    "fhn": (fitzhughnagumo(), 2 ** jnp.arange(7, 22)),
-    # "fhn500": (fitzhughnagumo(tmax=500), 2 ** jnp.arange(9, 20)),
     "logistic": (logistic(), 2 ** jnp.arange(4, 20)),
+    "fhn": (fitzhughnagumo(), 2 ** jnp.arange(7, 20)),
+    # "fhn500": (fitzhughnagumo(tmax=500), 2 ** jnp.arange(9, 20)),
+    "lotkavolterra": (lotkavolterra(), 2 ** jnp.arange(7, 20)),
+    "vdp0": (vanderpol(stiffness_constant=1e0), 2 ** jnp.arange(7, 20)),
     # "vdp1": (vanderpol(stiffness_constant=1e1), 2 ** jnp.arange(9, 20)),
     # "vdp2": (vanderpol(stiffness_constant=1e2), 2 ** jnp.arange(9, 20)),
-    "rigidbody": (rigid_body(), 2 ** jnp.arange(7, 22)),
+    "rigidbody": (rigid_body(), 2 ** jnp.arange(7, 20)),
     # "seir": (seir(), 2 ** jnp.arange(9, 20)),
 }
 METHODS = {
@@ -131,8 +134,8 @@ METHODS = {
     "KV5": _diffrax(
         diffrax.Kvaerno5(diffrax.NewtonNonlinearSolver(rtol=1e-6, atol=1e-9))
     ),
-    "SciPy RK45": _scipy("RK45"),
-    "SciPy LSODA": _scipy("LSODA"),
+    # "SciPy RK45": _scipy("RK45"),
+    # "SciPy LSODA": _scipy("LSODA"),
     "EKS(1)": _eks(1),
     "EKS(2)": _eks(2),
     "EKS(3)": _eks(3),
@@ -159,7 +162,13 @@ def main(setupname, save=False, gpu_nocheck=False):
     IVP, Ns = SETUPS[setupname]
 
     ref = solve_diffrax(
-        IVP.f, IVP.y0, IVP.t_span, solver=diffrax.Kvaerno5, atol=1e-20, rtol=1e-20
+        IVP.f,
+        IVP.y0,
+        IVP.t_span,
+        solver=diffrax.Kvaerno5,
+        atol=1e-16,
+        rtol=1e-13,
+        max_steps=int(1e6),
     )
     yref_final = get_ts_ys(ref)[1][-1]
 
