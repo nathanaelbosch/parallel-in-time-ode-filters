@@ -18,7 +18,9 @@ from pof.solver import solve, sequential_eks_solve
 
 print(f"jax.devices(): {jax.devices()}")
 print(f"[d.platform for d in jax.devices()]: {[d.platform for d in jax.devices()]}")
-assert jax.devices()[0].platform == "gpu"
+device = jax.devices()[0]
+assert device.platform == "gpu"
+gpu_str = device.device_kind.replace(" ", "_")
 
 
 def timeit(f, N):
@@ -207,7 +209,7 @@ def main(setupname, save=False):
 def save_df(df, setupname):
     # save dataframe to csv file in the same directory as this script
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    filename = os.path.join(current_dir, f"data_{setupname}.csv")
+    filename = os.path.join(current_dir, f"data_{setupname}_{gpu_str}.csv")
     df.to_csv(filename, index=False)
     print(f"Saved data to {filename}")
 
