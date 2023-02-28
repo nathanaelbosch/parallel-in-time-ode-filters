@@ -1,4 +1,9 @@
 import os
+from pathlib import Path
+import sys
+
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+from common_plot_stuff import *
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -18,7 +23,8 @@ plt.rcParams.update(
         "axes.grid.which": "major",
     }
 )
-DIR = "./experiments/4_work_precision_diagram"
+# DIR = "./experiments/4_work_precision_diagram"
+DIR = Path(__file__).parent
 
 classic_keys = [
     "ImplicitEuler",
@@ -37,28 +43,12 @@ ieks_keys = [
     "IEKS(2)",
     "IEKS(3)",
     # "IEKS(5)",
+    "sIEKS(1)",
+    "sIEKS(2)",
+    "sIEKS(3)",
 ]
 
-MAXITER = 1000
-
 CLASSIC_MARKERS = ["s", "v", "D", "P", "X", "d", "p", "h", "H", "8"]
-
-
-def get_order_and_maxiter(k):
-    if k.startswith("IEKS"):
-        order = int(k[5])
-    elif k.startswith("EKS"):
-        order = int(k[4])
-    if len(k) >= 8:
-        maxiter = int(k[8:])
-    else:
-        maxiter = MAXITER
-    return int(order), int(maxiter)
-
-
-def replace_large_with_inf(df, large=1e8):
-    df[df > large] = float("inf")
-    return df
 
 
 def plot_xy(*, df, x, y, ax, labels=True):
@@ -74,26 +64,24 @@ def plot_xy(*, df, x, y, ax, labels=True):
         )
     for key in ieks_keys:
         label = key
-        order, maxiter = get_order_and_maxiter(key)
+        order = get_order(key)
         ax.plot(
             df[x(key)],
             df[y(key)],
             label=label if labels else "",
-            marker="o",
+            marker="o" if key.startswith("IEKS") else "d",
             markersize=3,
-            alpha=(maxiter / MAXITER) ** (1 / 4),
             color=f"C{order}",
         )
     for key in eks_keys:
         label = key
-        order, _ = get_order_and_maxiter(key)
+        order = get_order(key)
         ax.plot(
             df[x(key)],
             df[y(key)],
             label=label if labels else "",
             marker="o",
             markersize=3,
-            # alpha=(maxiter / MAXITER) ** (1 / 4),
             alpha=0.3,
             color=f"C{order}",
             linestyle="dashed",
@@ -162,14 +150,13 @@ def plot(df):
     # 4: ieks iterations
     for key in ieks_keys:
         label = key
-        order, maxiter = get_order_and_maxiter(key)
+        order = get_order(key)
         ax[1, 1].plot(
             df[f"Ns"],
             df[f"{key}_iterations"],
             # label=label,
             marker="o",
             markersize=3,
-            alpha=(maxiter / 1000) ** (1 / 4),
             color=f"C{order}",
         )
     ax[1, 1].set_xscale("log")
@@ -185,12 +172,24 @@ def plot(df):
     return fig
 
 
-for ivpname in ["logistic", "fhn", "fhn500", "vdp1", "seir", "rigidbody"]:
-    filename = os.path.join(DIR, f"data_{ivpname}.csv")
-    df = pd.read_csv(filename)
-    replace_large_with_inf(df)
-    fig = plot(df)
-    # save high resolution figure
-    fig.savefig(os.path.join(DIR, f"wpd_{ivpname}.png"), bbox_inches="tight", dpi=300)
-    fig.savefig(os.path.join(DIR, f"wpd_{ivpname}.pdf"), bbox_inches="tight")
-    print(f"Saved {ivpname}")
+PLOT_SETUPS = {
+    "logistic": {"MinMaxGrid": (2**7, 2**20)},  # full grid: 2**4, 2**20
+    "vdp0": {"MinMaxGrid": (2**7, 2**20)},  # full grid: 2**7, 2**20
+    "rigidbody": {"MinMaxGrid": (2**7, 2**20)},  # full grid: 2**7, 2**20
+}
+
+
+for devicename in ["cpu", "Tesla_V100-SXM2-32GB", "NVIDIA_GeForce_RTX_2080_Ti"]:
+    # for ivpname in ["logistic", "fhn", "fhn500", "vdp1", "seir", "rigidbody"]:
+    for ivpname in ["logistic", "vdp0", "rigidbody"]:
+        filename = os.path.join(DIR, "data", f"{ivpname}_{devicename}.csv")
+        df = pd.read_csv(filename)
+        min_Ns, max_Ns = PLOT_SETUPS[ivpname]["MinMaxGrid"]
+        df = df[(min_Ns <= df.Ns) & (df.Ns <= max_Ns)]
+        replace_large_with_inf(df)
+        fig = plot(df)
+        # save high resolution figure
+        filename = os.path.join(DIR, "figures", f"wpd_{ivpname}_{devicename}.pdf")
+        # fig.savefig(os.path.join(DIR, f"wpd_{ivpname}.png"), bbox_inches="tight", dpi=300)
+        fig.savefig(filename, bbox_inches="tight")
+        print(f"Saved to {filename}")

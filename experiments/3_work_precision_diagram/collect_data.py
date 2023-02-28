@@ -121,6 +121,7 @@ SETUPS = {
     # "vdp2": (vanderpol(stiffness_constant=1e2), 2 ** jnp.arange(9, 20)),
     "rigidbody": (rigid_body(), 2 ** jnp.arange(7, 20)),
     # "seir": (seir(), 2 ** jnp.arange(9, 20)),
+    "henonheiles": (henonheiles(tmax=10.0), 2 ** jnp.arange(5, 20)),
 }
 METHODS = {
     "DP5": _diffrax(diffrax.Dopri5()),
@@ -220,7 +221,7 @@ def main(setupname, save=False, gpu_nocheck=False):
 def save_df(df, setupname, devicename):
     # save dataframe to csv file in the same directory as this script
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    filename = os.path.join(current_dir, f"data_{setupname}_{devicename}.csv")
+    filename = os.path.join(current_dir, "data", f"{setupname}_{devicename}.csv")
     df.to_csv(filename, index=False)
     print(f"Saved data to {filename}")
 
