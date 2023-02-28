@@ -110,3 +110,47 @@ def seir(t0=0.0, tmax=200.0, y0=None, p=None):
         )
 
     return tornadox.ivp.InitialValueProblem(f=f, t0=t0, tmax=tmax, y0=y0)
+
+
+def threebody(t0=0.0, tmax=17.0652165601579625588917206249, y0=None, p=None):
+    Y0 = (0.994, 0)
+    DY0 = (0, -2.00158510637908252240537862224)
+    y0 = y0 or jnp.array([*Y0, *DY0])
+    p = p or jnp.array([0.012277471])
+
+    @jax.jit
+    def f(_, y, p=p):
+        mu, mp = p[0], 1.0 - p[0]
+        D1 = jnp.linalg.norm(jnp.asarray([y[0] + mu, y[1]])) ** 3.0
+        D2 = jnp.linalg.norm(jnp.asarray([y[0] - mp, y[1]])) ** 3.0
+        du0p = y[0] + 2 * y[3] - mp * (y[0] + mu) / D1 - mu * (y[0] - mp) / D2
+        du1p = y[1] - 2 * y[2] - mp * y[1] / D1 - mu * y[1] / D2
+        return jnp.asarray([y[2], y[3], du0p, du1p])
+
+    return tornadox.ivp.InitialValueProblem(f=f, t0=t0, tmax=tmax, y0=y0)
+
+
+# def henon_heiles(u, /, p):
+#     """Henon-Heiles dynamics as a second-order differential equation."""
+#     x, y = u[0], u[1]
+#     ddx = -x - 2 * p * x * y
+#     ddy = -y - p * (x**2.0 - y**2.0)
+#     return backend.numpy.asarray([ddx, ddy])
+
+
+def henonheiles(t0=0.0, tmax=100.0, y0=None, p=None):
+    y0 = y0 or jnp.array([0.5, 0.0, 0.0, 0.1])
+    p = p or 1.0
+
+    @jax.jit
+    def f(_, y, p=p):
+        return jnp.array(
+            [
+                y[2],
+                y[3],
+                -y[0] - 2 * p * y[0] * y[1],
+                -y[1] - p * (y[0] ** 2 - y[1] ** 2),
+            ]
+        )
+
+    return tornadox.ivp.InitialValueProblem(f=f, t0=t0, tmax=tmax, y0=y0)
