@@ -1,5 +1,9 @@
 from pathlib import Path
 from collections import defaultdict
+import sys
+
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+from common_plot_stuff import *
 
 import numpy as np
 import matplotlib
@@ -19,62 +23,81 @@ plt.rcParams.update(
         "lines.markeredgewidth": 0.2,
         # "lines.markersize": 4,
         "axes.grid": True,
-        "axes.grid.which": "both",
-        # "axes.grid.which": "major",
+        # "axes.grid.which": "both",
+        "axes.grid.which": "major",
     }
 )
-colored = (
-    cycler("color", ["r", "b"])
-    + cycler("marker", ["*", "^"])
-    + cycler("linestyle", ["-", "-"])
-)
-monochrome = cycler("color", ["gray"]) * (
-    cycler("linestyle", [(0, (3, 1, 1, 1)), "--", ":", "-.", (0, (3, 1, 1, 1, 1, 1))])
-    + cycler("marker", ["p", "P", "X", "d", "s"])
-)
-cycle = colored.concat(monochrome)
 
 
 filedir = Path(__file__).parent
 # filedir = Path("experiments/3_gpu_comparison")
-gpus = ["1060", "2080ti", "v100"]
-dfs = {gpu: pd.read_csv(filedir / f"{gpu}.csv") for gpu in gpus}
 
-labels = {
-    "pEKS": "Parallel EKS",
-    "sEKS": "Sequential EKS",
-    "dp5": "Dopri5 (diffrax)",
-    "kv5": "Kvaerno5 (diffrax)",
-}
-gpu_labels = {
-    "1060": "GTX 1060",
-    "2080ti": "RTX 2080 Ti",
-    "v100": "V100",
-}
+GPUS = [
+    "1060",
+    "1080ti",
+    "titanxp",
+    "2080ti",
+    "v100",
+]
+dfs = {gpu: pd.read_csv(filedir / f"{gpu}.csv") for gpu in GPUS}
+
 gpu_annotation_offset = {
-    # "1060": (5, 5),
-    "1060": (-20, 10),
-    "2080ti": (-65, -8),
+    # "1060": (-20, 10),
+    "1060": (-10, 10),
+    "1080ti": (-65, -8),
+    # "2080ti": (-65, -8),
+    # "2080ti": (5, 0),
+    # "2080ti": (-8, 9),
+    "2080ti": (5, 0),
     "v100": (-13, -15),
+    "titanxp": (0, 5),
 }
 
+
+CLASSIC_SOLVERS = [
+    "dp5",
+    # "kv3",
+    "kv5",
+]
+GPU_COMPARISON_DT = 2**-13
+SOLVERS = ["sEKS", "pEKS", *CLASSIC_SOLVERS]
+
+STYLES = {
+    "pEKS": {"marker": "d", "color": "b"},
+    "sEKS": {"marker": "o", "color": "r"},
+    "dp5": {"marker": "^", "color": "gray"},
+    "kv3": {"marker": ">", "color": "gray"},
+    "kv5": {"marker": "v", "color": "gray"},
+    "1060": {"linestyle": "-"},
+    "1080ti": {"linestyle": "--"},
+    "2080ti": {"linestyle": ":"},
+    "v100": {"linestyle": (0, (3, 1, 1, 1))},
+}
 
 x = "N"
 ALPHA = 0.2
 
 
 def plot_runtimes_with_gpu_subplots():
-    fig, axes = plt.subplots(1, len(gpus), sharey=True, sharex=True)
-    for ax, gpu in zip(axes, gpus):
-        ax.set_prop_cycle(cycle)
+    plt.rcParams.update(figsizes.jmlr2001(nrows=len(GPUS), ncols=1))
+    fig, axes = plt.subplots(len(GPUS), 1, sharey=True, sharex=True)
+    for ax, gpu in zip(axes, GPUS):
         df = dfs[gpu]
         for i, m in enumerate(("sEKS", "pEKS")):
             z = 100 + i
-            ax.plot(df[x], df[m], label=labels[m], markersize=10, linewidth=4, zorder=z)
+            ax.plot(
+                df[x],
+                df[m],
+                label=LABELS[m],
+                markersize=10,
+                linewidth=4,
+                zorder=z,
+                **STYLES[m],
+            )
 
         ref_alpha = 1
-        for m in ("dp5", "kv5"):
-            ax.plot(df[x], df[m], label=labels[m], alpha=ref_alpha)
+        for m in CLASSIC_SOLVERS:
+            ax.plot(df[x], df[m], label=LABELS[m], alpha=ref_alpha, **STYLES[m])
 
         ax.set_xscale("log")
         ax.set_yscale("log")
@@ -82,40 +105,37 @@ def plot_runtimes_with_gpu_subplots():
     axes[0].set_xlabel("Number of gridpoints")
     axes[1].set_xlabel("Number of gridpoints")
     axes[2].set_xlabel("Number of gridpoints")
-    axes[0].set_title("GeForce GTX 1060")
-    axes[1].set_title("GeForce RTX 2080 Ti")
-    axes[2].set_title("Tesla V100")
+
+    for i, gpu in enumerate(GPUS):
+        axes[i].set_title(LABELS[gpu])
+
     axes[0].set_ylabel("Runtime [s]")
     axes[0].legend()
 
-    fig.savefig(filedir / "plot.pdf", bbox_inches="tight")
-    print(f"Saved plot to {filedir / 'plot.pdf'}")
+    filename = filedir / "gpu_subplots.pdf"
+    fig.savefig(filename, bbox_inches="tight")
+    print(f"Saved plot to {filename}")
 
 
 def plot_runtimes():
-    # plt.rcParams.update(figsizes.jmlr2001(nrows=1, ncols=1))
+    plt.rcParams.update(figsizes.jmlr2001(nrows=1, ncols=1))
     fig, ax = plt.subplots(1, 1)
-    cyc = (
-        cycler("color", ["r", "b", "gray"])
-        + cycler("marker", ["o", "d", "^"])
-        + cycler("alpha", [1, 1, 0.8])
-    ) * cycler("linestyle", ["-", "--", ":"])
-    ax.set_prop_cycle(cyc)
-    for i, m in enumerate(("sEKS", "pEKS", "dp5")):
-        for gpu in gpus:
+    for m in SOLVERS:
+        for gpu in GPUS:
             df = dfs[gpu]
             ax.plot(
                 df[x],
                 df[m],
                 linewidth=2,
-                label=f"{labels[m]} ({gpu_labels[gpu]})",
+                label=f"{LABELS[m]} ({LABELS[gpu]})",
                 markersize=5,
+                **STYLES[m],
+                **STYLES[gpu],
             )
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.set_xlabel("Number of gridpoints")
     ax.set_ylabel("Runtime [s]")
-    # ax.legend(bbox_to_anchor=(1.05, 0.5), loc="center left")
 
     ax.plot(
         df[x],
@@ -140,62 +160,52 @@ def plot_runtimes():
     )
 
     legend_elements = [
-        matplotlib.lines.Line2D(
-            [0], [0], linestyle="-", color="r", label="Sequential EKS", marker="o"
-        ),
-        matplotlib.lines.Line2D(
-            [0], [0], linestyle="-", color="b", label="Parallel EKS", marker="d"
-        ),
-        matplotlib.lines.Line2D(
-            [0], [0], linestyle="-", color="gray", label="Dopri5 (diffrax)", marker="^"
-        ),
+        matplotlib.lines.Line2D([0], [0], linestyle="-", label=LABELS[m], **STYLES[m])
+        for m in SOLVERS
+    ] + [
         matplotlib.patches.Patch(facecolor="r", label="$\propto$ N", alpha=ALPHA),
         matplotlib.patches.Patch(facecolor="b", label="$\propto$ log(N)", alpha=ALPHA),
-        # matplotlib.patches.Patch(facecolor="gray", label="Dopri5 (diffrax)"),
-        # matplotlib.patches.Patch(facecolor="gray", label="Kvaerno5 (diffrax)"),
     ]
     lg = ax.legend(handles=legend_elements, loc="upper left")
     ax.add_artist(lg)
+
     legend_elements = [
-        matplotlib.lines.Line2D([0], [0], linestyle="-", color="k", label="GTX 1060"),
-        matplotlib.lines.Line2D(
-            [0], [0], linestyle="--", color="k", label="RTX 2080 Ti"
-        ),
-        matplotlib.lines.Line2D([0], [0], linestyle=":", color="k", label="V100"),
+        matplotlib.lines.Line2D([0], [0], color="k", label=LABELS[gpu], **STYLES[gpu])
+        for gpu in GPUS
     ]
     ax.legend(handles=legend_elements, loc="lower right")
     # ax.legend(handles=legend_elements, loc="upper left")
+
     ax.margins(x=0.025)
 
-    # for i, gpu in enumerate(gpus):
-    #     s = ["-", "--", ":"][i]
-    #     ax.axvline(CUDA_CORES[gpu], 0.0, 1.0, color="black", linewidth=1.0, linestyle=s)
-    filepath = filedir / "plot.pdf"
+    filepath = filedir / "gpu_jointplot.pdf"
     fig.savefig(filepath, bbox_inches="tight")
     print(f"Saved plot to {filepath}")
 
 
-STYLES = {
-    "pEKS": {"marker": "d", "color": "b"},
-    "sEKS": {"marker": "o", "color": "r"},
-    "dp5": {"marker": "^", "color": "gray"},
-    "kv5": {"marker": "v", "color": "gray"},
-}
-
-
 def plot_single_gpu_runtimes(ax, legend=True):
-    # plt.rcParams.update(figsizes.jmlr2001(nrows=1, ncols=1))
-    for i, m in enumerate(("sEKS", "pEKS", "dp5", "kv5")):
-        gpu = "v100"
-        df = dfs[gpu]
+    gpu = "v100"
+
+    ax.axvline(
+        [CUDA_CORES[gpu]], color="black", linestyle="--", linewidth=0.5, zorder=1
+    )
+    # ax.annotate(
+    #     "V100 \#CUDACORES",
+    #     (CUDA_CORES[gpu], 1e-3),
+    #     textcoords="offset points",
+    #     xytext=(2, 5),
+    #     fontsize=6,
+    # )
+
+    df = dfs[gpu]
+    for m in SOLVERS:
         ax.plot(
             df[x],
             df[m],
             linewidth=2,
-            label=f"{labels[m]} ({gpu_labels[gpu]})",
-            marker=STYLES[m]["marker"],
-            color=STYLES[m]["color"],
+            label=f"{LABELS[m]} ({LABELS[gpu]})",
             markersize=5,
+            **STYLES[m],
         )
     ax.set_xscale("log")
     ax.set_yscale("log")
@@ -254,36 +264,28 @@ def plot_single_gpu_runtimes(ax, legend=True):
 
 
 def plot_cores(ax, legend=True, save=False):
-    DT = 2**-13
     rs = defaultdict(lambda: [])
-    for gpu in gpus:
+    for gpu in GPUS:
         rs["cores"].append(CUDA_CORES[gpu])
         df = dfs[gpu]
-        row = df[df.dt == DT]
-        for m in ("sEKS", "pEKS", "dp5", "kv5"):
+        row = df[df.dt == GPU_COMPARISON_DT]
+        for m in ("sEKS", "pEKS", *CLASSIC_SOLVERS):
             rs[m].append(row[m].values[0])
     df = pd.DataFrame(rs)
 
-    for m in ("sEKS", "pEKS", "dp5", "kv5"):
-        ax.plot(
-            df["cores"],
-            df[m],
-            label=labels[m],
-            marker=STYLES[m]["marker"],
-            color=STYLES[m]["color"],
-            markersize=10,
-        )
-    ax.set_xscale("log")
+    for m in SOLVERS:
+        ax.plot(df["cores"], df[m], label=LABELS[m], markersize=10, **STYLES[m])
+    # ax.set_xscale("log")
     ax.set_yscale("log")
     ax.set_xlabel("Number of CUDA cores")
     ax.set_ylabel("Runtime [s]")
     ax.set_xlim(1e3, 6e3)
-    for i in range(len(gpus)):
+    for i in range(len(GPUS)):
         ax.annotate(
-            gpu_labels[gpus[i]],
+            LABELS[GPUS[i]],
             (df["cores"][i], df["pEKS"][i]),
             textcoords="offset points",
-            xytext=gpu_annotation_offset[gpus[i]],
+            xytext=gpu_annotation_offset[GPUS[i]],
         )
     if legend:
         ax.legend()
@@ -300,20 +302,30 @@ def plot_things():
     axes[1].set_title(rf"$\bf b.$ Comparison of different GPUs", loc="left")
     axes[1].set_ylabel(None)
 
-    legend_elements = [
-        matplotlib.lines.Line2D(
-            [0],
-            [0],
-            linestyle="-",
-            color=STYLES[m]["color"],
-            label=labels[m],
-            marker=STYLES[m]["marker"],
-        )
-        for m in ("sEKS", "pEKS", "dp5", "kv5")
-    ] + [
-        matplotlib.patches.Patch(facecolor="r", label="$\propto$ N", alpha=ALPHA),
-        matplotlib.patches.Patch(facecolor="b", label="$\propto$ log(N)", alpha=ALPHA),
-    ]
+    legend_elements = (
+        [
+            matplotlib.lines.Line2D(
+                [0], [0], linestyle="-", label=LABELS[m], **STYLES[m]
+            )
+            for m in ("sEKS", "pEKS", *CLASSIC_SOLVERS)
+        ]
+        + [
+            matplotlib.patches.Patch(facecolor="r", label="$\propto$ N", alpha=ALPHA),
+            matplotlib.patches.Patch(
+                facecolor="b", label="$\propto$ log(N)", alpha=ALPHA
+            ),
+        ]
+        + [
+            matplotlib.lines.Line2D(
+                [0],
+                [0],
+                linestyle="--",
+                label="V100 CUDA cores",
+                color="black",
+                linewidth=0.5,
+            )
+        ]
+    )
 
     # leg = fig.legend(
     # leg = axes[1].legend(
@@ -334,3 +346,5 @@ def plot_things():
 
 
 plot_things()
+# plot_runtimes_with_gpu_subplots()
+# plot_runtimes()

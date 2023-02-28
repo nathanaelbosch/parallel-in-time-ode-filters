@@ -39,9 +39,8 @@ def sequential_eks(f, y0, ts, order):
     om = setup["om"]
     x0 = setup["x0"]
 
-    states, nll = seq_fs(x0, dtm, om)
+    states, *_ = seq_fs(x0, dtm, om)
 
-    info_dict = {"nll": nll}
     states = jax.vmap(_gmul, in_axes=[None, 0])(setup["E0"], states)
 
     return states.mean, 0
@@ -83,7 +82,7 @@ def timeit(f, N):
 def benchmark(methods, dts, ivp, N=10):
     results = defaultdict(lambda: [])
     for dt in dts:
-        print(f"dt={dt}")
+        print(f"dt = 2^{int(jnp.round(jnp.log2(dt)))}")
         results["dt"].append(dt)
         ts = jnp.arange(ivp.t0, ivp.tmax + dt, dt)
         for k, v in methods.items():
@@ -109,11 +108,13 @@ def block_and_return_state(f):
     return f2
 
 
-@plac.pos("gpu_name", "GPU Name", choices=["1060", "v100", "2080ti"])
-@plac.opt("dtmin", "Minimum Step Size (negative log2)", type=int)
-def main(gpu_name, dtmin=15):
+@plac.pos("gpu_name", "GPU Name")
+def main(gpu_name):
 
-    dts = 2.0 ** -np.arange(14, 15)
+    dts = 2.0 ** -np.arange(0, 19)
+    # 1060 can only handle up to 14; 15 if we try manually afterwards; 16 does not work
+    # dts = 2.0 ** -np.arange(0, 14)
+    # dts = 2.0 ** -np.arange(17, 19)
 
     ivp = logistic()
     f, y0 = ivp.f, ivp.y0
@@ -123,6 +124,8 @@ def main(gpu_name, dtmin=15):
     dp5 = jax.jit(lambda ts: solve_diffrax(f, y0, ts, solver=diffrax.Dopri5()))
     Kv5 = diffrax.Kvaerno5(diffrax.NewtonNonlinearSolver(rtol=1e-6, atol=1e-9))
     kv5 = jax.jit(lambda ts: solve_diffrax(f, y0, ts, solver=Kv5))
+    Kv3 = diffrax.Kvaerno5(diffrax.NewtonNonlinearSolver(rtol=1e-6, atol=1e-9))
+    kv3 = jax.jit(lambda ts: solve_diffrax(f, y0, ts, solver=Kv3))
     rk45 = lambda ts: solve_scipy(f, y0, ts, "RK45")[1]
     lsoda = lambda ts: solve_scipy(f, y0, ts, "LSODA")[1]
     methods = {
@@ -130,9 +133,10 @@ def main(gpu_name, dtmin=15):
         "sEKS": block_and_return_state(seks),
         "dp5": block_and_return_state(dp5),
         "kv5": block_and_return_state(kv5),
+        "kv3": block_and_return_state(kv3),
     }
 
-    res = benchmark(methods, dts, ivp, N=5)
+    res = benchmark(methods, dts, ivp, N=3)
 
     df = pd.DataFrame(res)
     df["N"] = (ivp.tmax - ivp.t0) / df.dt
