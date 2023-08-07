@@ -14,12 +14,14 @@ IVPS = {
     "fhn": fitzhughnagumo(),
     "rigidbody": rigid_body(),
     "vdp0": vanderpol(stiffness_constant=1e0),
+    "henonheiles": henonheiles(tmax=10.0),
 }
 IVPLABELS = {
     "logistic": "Logistic",
     "fhn": "FitzHugh--Nagumo",
     "rigidbody": "Rigid Body",
     "vdp0": "Van der Pol",
+    "henonheiles": "Henon--Heiles",
 }
 LABELS = {
     "pEKS": "Parallel EKS",
@@ -32,6 +34,19 @@ LABELS = {
     "titanxp": "TITAN Xp",
     "2080ti": "RTX 2080 Ti",
     "v100": "V100",
+    "3090": "3090",
+}
+
+CUDA_CORES = {
+    "1060": 1280,
+    "1080ti": 3584,
+    "2080ti": 4352,
+    "v100": 5120,
+    "a100": 6912,
+    "titanx": 3072,
+    "titanxp": 3840,
+    "3090": 10496,
+    "3090ti": 10752,
 }
 
 
@@ -76,6 +91,6 @@ def plot_solution(ivp, ax):
     ax.grid(visible=False)
 
 
-def replace_large_with_inf(df, large=1e8):
+def replace_large_with_inf(df, large=1e5):
     df[df > large] = float("inf")
     return df

@@ -115,6 +115,7 @@ def main(gpu_name):
     # 1060 can only handle up to 14; 15 if we try manually afterwards; 16 does not work
     # dts = 2.0 ** -np.arange(0, 14)
     # dts = 2.0 ** -np.arange(17, 19)
+    dts = 2.0 ** -np.arange(13, 14)
 
     ivp = logistic()
     f, y0 = ivp.f, ivp.y0
@@ -133,7 +134,7 @@ def main(gpu_name):
         "sEKS": block_and_return_state(seks),
         "dp5": block_and_return_state(dp5),
         "kv5": block_and_return_state(kv5),
-        "kv3": block_and_return_state(kv3),
+        # "kv3": block_and_return_state(kv3),
     }
 
     res = benchmark(methods, dts, ivp, N=3)

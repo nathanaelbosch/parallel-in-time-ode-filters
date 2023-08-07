@@ -1,6 +1,6 @@
 from functools import partial
 
-# import diffrax
+import diffrax
 import jax
 import jax.numpy as jnp
 from tqdm import trange
@@ -47,18 +47,30 @@ def _ieks(ivp, ts, order):
 
 
 ivp, ylims, Ns = (
-    vanderpol(tmax=20, stiffness_constant=1e2),
+    vanderpol(stiffness_constant=1e2),
     (-2.5, 2.5),
     2 ** jnp.arange(8, 18),
 )
+# ivp, ylims, Ns = rigid_body(), (-2, 2), 2 ** jnp.arange(8, 18)
+ivp, ylims, Ns = seir(), (0, 1000), 2 ** jnp.arange(8, 22)
 # ivp, ylims, Ns = fitzhughnagumo(tmax=500), (-2, 2), 2 ** jnp.arange(8, 18)
 # ivp, ylims, Ns = logistic(), (-0.2, 1.2), 2 ** jnp.arange(3, 15)
 # Ns = 2 ** jnp.arange(8, 18)
-order = 2
-N = Ns[5]
+order = 1
+N = Ns[2]
 ts = jnp.linspace(ivp.t0, ivp.tmax, N)
 
-sol_true = solve_diffrax(ivp.f, ivp.y0, ivp.t_span, max_steps=int(1e6))
+sol_true = solve_diffrax(
+    ivp.f,
+    ivp.y0,
+    ivp.t_span,
+    max_steps=int(1e6),
+    # rtol=1e-20,
+    # atol=1e-20,
+    rtol=1e-9,
+    atol=1e-9,
+    solver=diffrax.Kvaerno5,
+)
 ys_true = jax.vmap(sol_true.evaluate)(ts)
 
 _ys, info = _ieks(ivp, ts, order)

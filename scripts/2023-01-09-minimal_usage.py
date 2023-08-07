@@ -2,24 +2,31 @@ import jax
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 
-from pof.ivp import lotkavolterra, fitzhughnagumo
+from pof.ivp import *
 from pof.diffrax import solve_diffrax
 from pof.solver import solve, sequential_eks_solve
 
-ORDER = 3
+ORDER = 2
 
 # ivp = lotkavolterra()
-ivp = fitzhughnagumo()
+# ivp = fitzhughnagumo()
+# ivp = threebody()
+ivp = henonheiles(tmax=10.0)
 
-N = 200
-ts = jnp.linspace(0, 100, N)
+# N = 100
+N = 2**5
+ts = jnp.linspace(ivp.t0, ivp.tmax, N)
 
-sol_true = solve_diffrax(ivp.f, ivp.y0, ivp.t_span, atol=1e-9, rtol=1e-9)
+# sol_true = solve_diffrax(ivp.f, ivp.y0, ivp.t_span, atol=1e-9, rtol=1e-9)
+sol_true = solve_diffrax(ivp.f, ivp.y0, ivp.t_span, max_steps=int(1e5))
 ys_true = jax.vmap(sol_true.evaluate)(ts)
 
 ys_par, info_par = solve(f=ivp.f, y0=ivp.y0, ts=ts, order=ORDER, init="constant")
+ys_seq, info_seq = solve(
+    f=ivp.f, y0=ivp.y0, ts=ts, order=ORDER, init="constant", sequential=True
+)
 
-ys_seq, info_seq = sequential_eks_solve(f=ivp.f, y0=ivp.y0, ts=ts, order=ORDER)
+ys_eks, info_eks = sequential_eks_solve(f=ivp.f, y0=ivp.y0, ts=ts, order=ORDER)
 
 
 def plot_result(ys, ax=None):
@@ -42,9 +49,11 @@ def plot_result(ys, ax=None):
     return ax
 
 
-fig, axes = plt.subplots(2, 1)
+fig, axes = plt.subplots(3, 1)
 plot_result(ys_par, ax=axes[0])
 plot_result(ys_seq, ax=axes[1])
-axes[0].set_ylim(-2.2, 2.2)
-axes[1].set_ylim(-2.2, 2.2)
+plot_result(ys_eks, ax=axes[2])
+axes[0].set_ylim(-0.6, 0.6)
+axes[1].set_ylim(-0.6, 0.6)
+axes[2].set_ylim(-0.6, 0.6)
 plt.show()

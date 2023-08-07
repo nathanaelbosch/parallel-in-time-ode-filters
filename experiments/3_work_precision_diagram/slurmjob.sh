@@ -15,5 +15,6 @@
 scontrol show job $SLURM_JOB_ID
 
 # insert your commands here
-cd $WORK/parallel-ode-filters
-.venv/bin/python experiments/3_work_precision_diagram/collect_data.py $1 --save
+# cd $WORK/parallel-ode-filters
+conda activate pof
+python experiments/3_work_precision_diagram/collect_data.py $1 --save

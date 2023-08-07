@@ -6,6 +6,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 from common_plot_stuff import *
 
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 from tueplots import axes, bundles, figsizes
 from tueplots.constants import markers
@@ -36,6 +37,8 @@ classic_keys = [
 eks_keys = [
     "EKS(1)",
     "EKS(2)",
+    "sIEKS(1)",
+    "sIEKS(2)",
     # "EKS(3)",
     # "EKS(5)",
 ]
@@ -102,28 +105,69 @@ def plot_xy(*, df, x, y, ax, labels=True):
     return ax
 
 
-# plt.rcParams.update(figsizes.jmlr2001(nrows=2, ncols=4))
-def plot_wpd(df, ax, labels=True):
+def plot_scaling(df, ax, labels=True):
     replace_large_with_inf(df)
     plot_xy(
         df=df,
-        x=lambda k: f"{k}_rmse_traj",
         y=lambda k: f"{k}_runtime",
+        x=lambda k: f"Ns",
         ax=ax,
         labels=labels,
     )
-    ax.set_title(rf"$\bf a.$ Work-precision diagram", loc="left")
 
 
-def plot_wpd_gridsize(df, ax, labels=True):
+def plot_iterations(df, ax, labels=True):
     replace_large_with_inf(df)
-    plot_xy(
-        df=df,
-        x=lambda k: f"{k}_rmse_traj",
-        y=lambda k: f"Ns",
-        ax=ax,
-        labels=labels,
-    )
+
+    for (i, key) in enumerate(classic_keys):
+        label = key
+        ax.plot(
+            df["Ns"],
+            np.ones_like(df["Ns"]),
+            label=label if labels else "",
+            marker=CLASSIC_MARKERS[i],
+            markersize=5,
+            color="gray",
+            alpha=LINEALPHA,
+        )
+    for i, key in enumerate(ieks_keys):
+        label = key
+        order = get_order(key)
+        ax.plot(
+            df["Ns"],
+            df[f"{key}_iterations"],
+            label=label if labels else "",
+            # marker="o",
+            # markersize=3,
+            marker=PN_MARKERS[i],
+            markersize=5,
+            color=f"C{order}",
+            linewidth=LINEWIDTH,
+            alpha=LINEALPHA,
+        )
+    for i, key in enumerate(eks_keys):
+        label = key
+        order = get_order(key)
+        ax.plot(
+            df["Ns"],
+            df[f"{key}_iterations"]
+            if key.startswith("sIEKS")
+            else np.ones_like(df["Ns"]),
+            label=label if labels else "",
+            # marker="o",
+            # markersize=3,
+            marker=PN_MARKERS[i + len(ieks_keys)],
+            markersize=5,
+            color=f"C{order}",
+            linestyle="dashed",
+            alpha=LINEALPHA,
+        )
+
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    # ax.set_ylim(0, 100)
+    # ax.legend()
+    return ax
 
 
 def make_individual_plot(ivpname, device):
@@ -132,64 +176,64 @@ def make_individual_plot(ivpname, device):
     # df = df[df.Ns <= 2 ** (4 + 11)]
 
     fig, ax = plt.subplots(1, 1)
-    plot_wpd(df, ax)
-    ax.set_ylabel("RMSE (trajectory)")
+    plot_scaling(df, ax)
+    ax.set_ylabel("Runtime [s]")
+    ax.set_xlabel("Number of grid points")
+
+    # ax.axvline(
+    #     [CUDA_CORES["v100"]], color="black", linestyle="--", linewidth=0.5, zorder=1
+    # )
+
     ivp = IVPS[ivpname]
 
-    ax1 = ax.inset_axes([0.71, 0.65, 0.27, 0.27])
+    ax1 = ax.inset_axes([1 - 0.71 - 0.27, 0.65, 0.27, 0.27])
     plot_solution(ivp, ax1)
     ax1.set_title(rf"$\bf b.$ {IVPLABELS[ivpname]}", loc="left")
 
     leg = fig.legend(bbox_to_anchor=(1.01, 0.5), loc="center left", borderaxespad=0.0)
 
-    filepath = os.path.join(DIR, "figures", f"workprecision_{ivpname}.pdf")
+    filepath = os.path.join(
+        "./experiments/2_parallel_vs_sequential_ieks", f"scaling_{ivpname}.pdf"
+    )
     fig.savefig(filepath)
     print(f"Saved to {filepath}")
 
 
-DEVICE = "Tesla_V100-SXM2-32GB"
-# DEVICE = "cpu"
+device = DEVICE = "Tesla_V100-SXM2-32GB"
 IVPNAMES = ["logistic", "rigidbody", "vdp0"]
-IVPNAMES = ["rigidbody", "vdp0", "henonheiles", "fhn"]
 
 # for ivpname in IVPNAMES:
 #     make_individual_plot(ivpname, DEVICE)
 
-# Now make another one that shows two IVPs in one plot
-# plt.rcParams.update(figsizes.jmlr2001(nrows=2, ncols=1))
-# fig, axes = plt.subplots(len(IVPNAMES), 1, sharey="row", sharex="col")
 fig, axes = plt.subplots(2, len(IVPNAMES), sharey="row", sharex="col")
-for DEVICE in [
-    # "cpu",
-    "Tesla_V100-SXM2-32GB",
-]:
-    for i, ivpname in enumerate(IVPNAMES):
-        ax = axes[0, i]
-        if i == 0:
-            ax.set_ylabel("Runtime [s]")
+for i, ivpname in enumerate(IVPNAMES):
+    ax = axes[0, i]
+    if i == 0:
+        ax.set_ylabel("Runtime [s]")
 
-        # filename = os.path.join(DIR, "data", f"data_{ivpname}.csv")
-        filename = os.path.join(DIR, "data", f"{ivpname}_{DEVICE}.csv")
-        df = pd.read_csv(filename)
-        df = df[df.Ns <= 2 ** (4 + 13)]
+    filename = os.path.join(DIR, "data", f"{ivpname}_{device}.csv")
+    df = pd.read_csv(filename)
 
-        plot_wpd(df, ax, labels=i == 0)
-        ax.set_title(rf"$\bf {chr(ord('a') + i)}.$ {IVPLABELS[ivpname]}", loc="left")
-        ivp = IVPS[ivpname]
+    plot_scaling(df, ax, labels=i == 0)
+    ax.set_title(rf"$\bf {chr(ord('a') + i)}.$ {IVPLABELS[ivpname]}", loc="left")
 
-        ax1 = ax.inset_axes([0.65, 0.75, 0.33, 0.23])
-        plot_solution(ivp, ax1)
-        # ax1.set_title(rf"$\bf b.$ {IVPLABELS[ivpname]}", loc="left")
+    # ax.axvline(
+    #     [CUDA_CORES["v100"]], color="black", linestyle="--", linewidth=0.5, zorder=1
+    # )
 
-        ax = axes[1, i]
-        if i == 0:
-            ax.set_ylabel("Grid size")
-        plot_wpd_gridsize(df, ax, labels=False)
+    ivp = IVPS[ivpname]
+    ax1 = ax.inset_axes([1 - 0.71 - 0.27, 0.65, 0.27, 0.27])
+    plot_solution(ivp, ax1)
+    # ax1.set_title(rf"$\bf b.$ {IVPLABELS[ivpname]}", loc="left")
 
-        axes[1, i].set_xlabel("RMSE")
+    ax = axes[1, i]
+    plot_iterations(df, ax, labels=False)
+    if i == 0:
+        ax.set_ylabel("Number of iterations")
+    ax.set_xlabel("Number of grid points")
 
-leg = fig.legend(bbox_to_anchor=(1.01, 0.5), loc="center left", borderaxespad=0.0)
+    leg = fig.legend(bbox_to_anchor=(1.01, 0.5), loc="center left", borderaxespad=0.0)
 
-filepath = os.path.join(DIR, "figures", f"workprecision_{DEVICE}.pdf")
+filepath = os.path.join("./experiments/2_parallel_vs_sequential_ieks", f"scaling.pdf")
 fig.savefig(filepath)
 print(f"Saved to {filepath}")

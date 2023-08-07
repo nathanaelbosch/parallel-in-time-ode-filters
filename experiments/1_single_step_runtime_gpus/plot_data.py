@@ -12,7 +12,6 @@ import pandas as pd
 from cycler import cycler
 from tueplots import axes, bundles, figsizes
 from tueplots.constants import markers
-from cuda_cores import CUDA_CORES
 
 plt.rcParams.update(bundles.jmlr2001())
 plt.rcParams.update(axes.lines())
@@ -38,19 +37,21 @@ GPUS = [
     "titanxp",
     "2080ti",
     "v100",
+    # "3090",
 ]
 dfs = {gpu: pd.read_csv(filedir / f"{gpu}.csv") for gpu in GPUS}
 
 gpu_annotation_offset = {
     # "1060": (-20, 10),
-    "1060": (-10, 10),
+    "1060": (-7, 10),
     "1080ti": (-65, -8),
-    # "2080ti": (-65, -8),
+    "2080ti": (-50, -15),
     # "2080ti": (5, 0),
     # "2080ti": (-8, 9),
-    "2080ti": (5, 0),
+    # "2080ti": (5, 0),
     "v100": (-13, -15),
-    "titanxp": (0, 5),
+    "titanxp": (-5, 10),
+    "3090": (0, 0),
 }
 
 
@@ -293,13 +294,15 @@ def plot_cores(ax, legend=True, save=False):
 
 def plot_things():
     plt.rcParams.update(figsizes.jmlr2001(nrows=1, ncols=1))
-    fig, axes = plt.subplots(1, 2, sharey=True)
+    fig, axes = plt.subplots(
+        1, 2, sharey=True, gridspec_kw={"width_ratios": [1.61803, 1]}
+    )
 
     plot_single_gpu_runtimes(ax=axes[0], legend=False)
     axes[0].set_title(rf"$\bf a.$ Single-step runtime benchmark", loc="left")
 
     plot_cores(ax=axes[1], legend=False)
-    axes[1].set_title(rf"$\bf b.$ Comparison of different GPUs", loc="left")
+    axes[1].set_title(rf"$\bf b.$ GPU comparison", loc="left")
     axes[1].set_ylabel(None)
 
     legend_elements = (

@@ -13,20 +13,26 @@ set jobfile "\$WORK/parallel-ode-filters/experiments/3_work_precision_diagram/sl
 echo "jobfile: $jobfile"
 
 # set ivps logistic fhn lotkavolterra vdp0 rigidbody
-set ivps fhn lotkavolterra henonheiles
+# set ivps fhn lotkavolterra henonheiles
+set ivps logistic rigidbody
 
 for ivp in $ivps
-    echo gpu-v100 $ivp
-    ssh slurm "cd ~; sbatch -p gpu-v100 --gres=gpu:1 --exclude \"slurm-v100-6\" $jobfile $ivp"
+    # echo gpu-v100 $ivp
+    # ssh slurm "cd ~; sbatch -p gpu-v100 --gres=gpu:1 --exclude \"slurm-v100-6\" $jobfile $ivp"
 end
 
 for ivp in $ivps
-    echo gpu-2080ti $ivp
-    ssh slurm "cd ~; sbatch -p gpu-2080ti --gres=gpu:1 --exclude \"slurm-v100-6\" $jobfile $ivp"
+    echo a100 $ivp
+    ssh slurm-r2 "cd ~; sbatch -p a100 --gres=gpu:1 $jobfile $ivp"
 end
 
 for ivp in $ivps
-    echo cpu-long $ivp
-    ssh slurm "cd ~; sbatch -p cpu-long --exclude \"slurm-v100-6\" $jobfile \"$ivp --gpu-nocheck\""
+    # echo gpu-2080ti $ivp
+    # ssh slurm "cd ~; sbatch -p gpu-2080ti --gres=gpu:1 --exclude \"slurm-v100-6\" $jobfile $ivp"
+end
+
+for ivp in $ivps
+    # echo cpu-long $ivp
+    # ssh slrum "cd ~; sbatch -p cpu-long --exclude \"slurm-v100-6\" $jobfile \"$ivp --gpu-nocheck\""
 end
 echo "Done"

@@ -155,6 +155,7 @@ def plot_speedup(df, ax, ivpname, labels=True):
         )
     ax.set_xscale("log")
     ax.set_yscale("log")
+    ax.set_ylim(bottom=1)
     return ax
 
 
