@@ -17,7 +17,7 @@ plt.rcParams.update(
     {
         # "lines.linewidth": 1.5,
         "lines.markeredgecolor": "black",
-        "lines.markeredgewidth": 0.2,
+        "lines.markeredgewidth": 0.5,
         # "lines.markersize": 4,
         "axes.grid": True,
         # "axes.grid.which": "both",
@@ -104,7 +104,7 @@ def plot_xy(*, df, x, y, ax, labels=True):
 
 # plt.rcParams.update(figsizes.jmlr2001(nrows=2, ncols=4))
 def plot_wpd(df, ax, labels=True):
-    replace_large_with_inf(df)
+    # replace_large_with_inf(df)
     plot_xy(
         df=df,
         x=lambda k: f"{k}_rmse_traj",
@@ -116,7 +116,7 @@ def plot_wpd(df, ax, labels=True):
 
 
 def plot_wpd_gridsize(df, ax, labels=True):
-    replace_large_with_inf(df)
+    # replace_large_with_inf(df)
     plot_xy(
         df=df,
         x=lambda k: f"{k}_rmse_traj",
@@ -150,7 +150,7 @@ def make_individual_plot(ivpname, device):
 DEVICE = "Tesla_V100-SXM2-32GB"
 # DEVICE = "cpu"
 IVPNAMES = ["logistic", "rigidbody", "vdp0"]
-IVPNAMES = ["rigidbody", "vdp0", "henonheiles", "fhn"]
+# IVPNAMES = ["rigidbody", "vdp0", "henonheiles", "fhn"]
 
 # for ivpname in IVPNAMES:
 #     make_individual_plot(ivpname, DEVICE)
@@ -171,7 +171,7 @@ for DEVICE in [
         # filename = os.path.join(DIR, "data", f"data_{ivpname}.csv")
         filename = os.path.join(DIR, "data", f"{ivpname}_{DEVICE}.csv")
         df = pd.read_csv(filename)
-        df = df[df.Ns <= 2 ** (4 + 13)]
+        # df = df[df.Ns <= 2 ** (4 + 13)]
 
         plot_wpd(df, ax, labels=i == 0)
         ax.set_title(rf"$\bf {chr(ord('a') + i)}.$ {IVPLABELS[ivpname]}", loc="left")

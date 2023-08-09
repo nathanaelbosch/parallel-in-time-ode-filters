@@ -18,7 +18,7 @@ plt.rcParams.update(
     {
         # "lines.linewidth": 1.5,
         "lines.markeredgecolor": "black",
-        "lines.markeredgewidth": 0.2,
+        "lines.markeredgewidth": 0.5,
         # "lines.markersize": 4,
         "axes.grid": True,
         # "axes.grid.which": "both",
@@ -106,7 +106,7 @@ def plot_xy(*, df, x, y, ax, labels=True):
 
 
 def plot_scaling(df, ax, labels=True):
-    replace_large_with_inf(df)
+    # replace_large_with_inf(df)
     plot_xy(
         df=df,
         y=lambda k: f"{k}_runtime",
@@ -117,7 +117,7 @@ def plot_scaling(df, ax, labels=True):
 
 
 def plot_iterations(df, ax, labels=True):
-    replace_large_with_inf(df)
+    # replace_large_with_inf(df)
 
     for (i, key) in enumerate(classic_keys):
         label = key

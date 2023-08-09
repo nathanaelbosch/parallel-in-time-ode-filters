@@ -20,7 +20,7 @@ plt.rcParams.update(
     {
         # "lines.linewidth": 1.5,
         "lines.markeredgecolor": "black",
-        "lines.markeredgewidth": 0.2,
+        "lines.markeredgewidth": 0.5,
         # "lines.markersize": 4,
         "axes.grid": True,
         # "axes.grid.which": "both",
