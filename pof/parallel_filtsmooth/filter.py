@@ -104,11 +104,10 @@ def _get_nll(transition_models, observation_models, means, cholcovs):
 
 @jax.jit
 def _get_sigma_squared(transition_models, observation_models, means, cholcovs):
-    om = observation_models
-    N, d = om.b.shape
+    N, d = observation_models.b.shape
     # noiseless_om = AffineModel(om.H, om.b, jnp.zeros_like(om.cholR))
     obs_mean, obs_chol = jax.vmap(_get_obs)(
-        transition_models, om, means[:-1], cholcovs[:-1]
+        transition_models, observation_models, means[:-1], cholcovs[:-1]
     )
     ress = jax.vmap(whiten)(obs_mean, obs_chol)
     sigma_squared = jax.vmap(jnp.dot)(ress, ress).sum() / N / d
