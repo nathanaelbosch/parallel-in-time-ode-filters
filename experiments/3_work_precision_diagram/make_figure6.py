@@ -201,10 +201,6 @@ def make_individual_plot(ivpname, device):
 
 device = DEVICE = "Tesla_V100-SXM2-32GB"
 IVPNAMES = ["logistic", "rigidbody", "vdp0"]
-
-# for ivpname in IVPNAMES:
-#     make_individual_plot(ivpname, DEVICE)
-
 fig, axes = plt.subplots(2, len(IVPNAMES), sharey="row", sharex="col")
 for i, ivpname in enumerate(IVPNAMES):
     ax = axes[0, i]
@@ -234,6 +230,6 @@ for i, ivpname in enumerate(IVPNAMES):
 
     leg = fig.legend(bbox_to_anchor=(1.01, 0.5), loc="center left", borderaxespad=0.0)
 
-filepath = os.path.join("./experiments/2_parallel_vs_sequential_ieks", f"figure6.pdf")
+filepath = os.path.join(DIR, f"figure6.pdf")
 fig.savefig(filepath)
 print(f"Saved to {filepath}")

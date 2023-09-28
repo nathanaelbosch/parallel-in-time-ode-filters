@@ -148,48 +148,36 @@ def make_individual_plot(ivpname, device):
 
 
 DEVICE = "Tesla_V100-SXM2-32GB"
-# DEVICE = "cpu"
 IVPNAMES = ["logistic", "rigidbody", "vdp0"]
-# IVPNAMES = ["rigidbody", "vdp0", "henonheiles", "fhn"]
-
-# for ivpname in IVPNAMES:
-#     make_individual_plot(ivpname, DEVICE)
-
-# Now make another one that shows two IVPs in one plot
-# plt.rcParams.update(figsizes.jmlr2001(nrows=2, ncols=1))
-# fig, axes = plt.subplots(len(IVPNAMES), 1, sharey="row", sharex="col")
 fig, axes = plt.subplots(2, len(IVPNAMES), sharey="row", sharex="col")
-for DEVICE in [
-    # "cpu",
-    "Tesla_V100-SXM2-32GB",
-]:
-    for i, ivpname in enumerate(IVPNAMES):
-        ax = axes[0, i]
-        if i == 0:
-            ax.set_ylabel("Runtime [s]")
+DEVICE = "Tesla_V100-SXM2-32GB"
+for i, ivpname in enumerate(IVPNAMES):
+    ax = axes[0, i]
+    if i == 0:
+        ax.set_ylabel("Runtime [s]")
 
-        # filename = os.path.join(DIR, "data", f"data_{ivpname}.csv")
-        filename = os.path.join(DIR, "data", f"{ivpname}_{DEVICE}.csv")
-        df = pd.read_csv(filename)
-        # df = df[df.Ns <= 2 ** (4 + 13)]
+    # filename = os.path.join(DIR, "data", f"data_{ivpname}.csv")
+    filename = os.path.join(DIR, "data", f"{ivpname}_{DEVICE}.csv")
+    df = pd.read_csv(filename)
+    # df = df[df.Ns <= 2 ** (4 + 13)]
 
-        plot_wpd(df, ax, labels=i == 0)
-        ax.set_title(rf"$\bf {chr(ord('a') + i)}.$ {IVPLABELS[ivpname]}", loc="left")
-        ivp = IVPS[ivpname]
+    plot_wpd(df, ax, labels=i == 0)
+    ax.set_title(rf"$\bf {chr(ord('a') + i)}.$ {IVPLABELS[ivpname]}", loc="left")
+    ivp = IVPS[ivpname]
 
-        ax1 = ax.inset_axes([0.65, 0.75, 0.33, 0.23])
-        plot_solution(ivp, ax1)
-        # ax1.set_title(rf"$\bf b.$ {IVPLABELS[ivpname]}", loc="left")
+    ax1 = ax.inset_axes([0.65, 0.75, 0.33, 0.23])
+    plot_solution(ivp, ax1)
+    # ax1.set_title(rf"$\bf b.$ {IVPLABELS[ivpname]}", loc="left")
 
-        ax = axes[1, i]
-        if i == 0:
-            ax.set_ylabel("Grid size")
-        plot_wpd_gridsize(df, ax, labels=False)
+    ax = axes[1, i]
+    if i == 0:
+        ax.set_ylabel("Grid size")
+    plot_wpd_gridsize(df, ax, labels=False)
 
-        axes[1, i].set_xlabel("RMSE")
+    axes[1, i].set_xlabel("RMSE")
 
 leg = fig.legend(bbox_to_anchor=(1.01, 0.5), loc="center left", borderaxespad=0.0)
 
-filepath = os.path.join(DIR, "figures", f"workprecision_{DEVICE}.pdf")
+filepath = os.path.join(DIR, f"figure5.pdf")
 fig.savefig(filepath)
 print(f"Saved to {filepath}")
