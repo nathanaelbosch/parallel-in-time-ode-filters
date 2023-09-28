@@ -1,4 +1,4 @@
-# Parallel-in-time ODE Filters
+# Parallel-in-time Probabilistic Numerical ODE Solvers
 
 
 ## Project environment setup
@@ -15,20 +15,19 @@ import jax
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 
-from pof.ivp import lotkavolterra
+from pof.ivp import fitzhughnagumo
 from pof.solver import solve, sequential_eks_solve
 
-ivp = lotkavolterra()
+ivp = fitzhughnagumo()
 
-N = 50
-ts = jnp.linspace(0, 10, N)
+ts_par = jnp.linspace(0, 100, 100)
+ys_par, info_par = solve(f=ivp.f, y0=ivp.y0, ts=ts_par, order=3, init="constant")
 
-ys_par, info_par = solve(f=ivp.f, y0=ivp.y0, ts=ts, order=3, init="constant")
+ts_seq = jnp.linspace(0, 100, 300)
+ys_seq, info_seq = sequential_eks_solve(f=ivp.f, y0=ivp.y0, ts=ts_seq, order=3)
 
-ys_seq, info_seq = sequential_eks_solve(f=ivp.f, y0=ivp.y0, ts=ts, order=3)
 
-
-def plot_result(ys, ax=None):
+def plot_result(ts, ys, ax=None):
     means, chol_covs = ys
     covs = jax.vmap(lambda c: c @ c.T, in_axes=0)(chol_covs)
 
@@ -48,10 +47,10 @@ def plot_result(ys, ax=None):
 
 
 fig, axes = plt.subplots(2, 1)
-plot_result(ys_par, ax=axes[0])
-plot_result(ys_seq, ax=axes[1])
-axes[0].set_ylim(0, 6)
-axes[1].set_ylim(0, 6)
+plot_result(ts_par, ys_par, ax=axes[0])
+plot_result(ts_seq, ys_seq, ax=axes[1])
+axes[0].set_ylim(-3, 3)
+axes[1].set_ylim(-3, 3)
 plt.show()
 ```
 
