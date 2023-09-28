@@ -39,7 +39,7 @@ GPUS = [
     "v100",
     # "3090",
 ]
-dfs = {gpu: pd.read_csv(filedir / f"{gpu}.csv") for gpu in GPUS}
+dfs = {gpu: pd.read_csv(filedir / "results" / f"{gpu}.csv") for gpu in GPUS}
 
 gpu_annotation_offset = {
     # "1060": (-20, 10),
@@ -343,7 +343,7 @@ def plot_things():
     # ax.add_artist(lg)
     axes[1].margins(y=0.025)
 
-    filepath = filedir / "plot.pdf"
+    filepath = filedir / "figure1.pdf"
     fig.savefig(filepath, bbox_inches="tight")
     print(f"Saved plot to {filepath}")
 

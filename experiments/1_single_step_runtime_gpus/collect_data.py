@@ -115,7 +115,7 @@ def main(gpu_name):
     # 1060 can only handle up to 14; 15 if we try manually afterwards; 16 does not work
     # dts = 2.0 ** -np.arange(0, 14)
     # dts = 2.0 ** -np.arange(17, 19)
-    dts = 2.0 ** -np.arange(13, 14)
+    # dts = 2.0 ** -np.arange(13, 14)
 
     ivp = logistic()
     f, y0 = ivp.f, ivp.y0
@@ -143,7 +143,7 @@ def main(gpu_name):
     df["N"] = (ivp.tmax - ivp.t0) / df.dt
 
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    filepath = os.path.join(current_dir, f"{gpu_name}_new.csv")
+    filepath = os.path.join(current_dir, "results", f"{gpu_name}.csv")
     df.to_csv(filepath)
 
 
