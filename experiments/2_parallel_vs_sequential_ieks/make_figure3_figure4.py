@@ -189,7 +189,7 @@ leg = fig.legend(
     borderaxespad=0.0,
 )
 
-filepath = os.path.join("./experiments/2_parallel_vs_sequential_ieks/workprecision.pdf")
+filepath = os.path.join("./experiments/2_parallel_vs_sequential_ieks/figure4.pdf")
 fig.savefig(filepath, bbox_inches="tight")
 print(f"Saved to {filepath}")
 
@@ -214,8 +214,6 @@ axes[0].set_ylabel("Grid size")
 # fig.subplots_adjust(right=0.8)
 leg = fig.legend(bbox_to_anchor=(1.01, 0.5), loc="center left", borderaxespad=0.0)
 
-filepath = os.path.join(
-    "./experiments/2_parallel_vs_sequential_ieks/workprecision_gridsize.pdf"
-)
+filepath = os.path.join("./experiments/2_parallel_vs_sequential_ieks/figure3.pdf")
 fig.savefig(filepath, bbox_inches="tight")
 print(f"Saved to {filepath}")

@@ -131,6 +131,6 @@ for i, (ivp, N) in enumerate(zip(IVPS, Ns)):
     axes[0, i].set_title(rf"$\bf {chr(ord('a') + i)}.$ {IVPNAMES[i]}", loc="left")
 
 DIR = Path("experiments/2_parallel_vs_sequential_ieks")
-filepath = DIR / "solutions.pdf"
+filepath = DIR / "figure2.pdf"
 fig.savefig(filepath, bbox_inches="tight")
 print(f"Saved plot to {filepath}")

@@ -234,6 +234,6 @@ for i, ivpname in enumerate(IVPNAMES):
 
     leg = fig.legend(bbox_to_anchor=(1.01, 0.5), loc="center left", borderaxespad=0.0)
 
-filepath = os.path.join("./experiments/2_parallel_vs_sequential_ieks", f"scaling.pdf")
+filepath = os.path.join("./experiments/2_parallel_vs_sequential_ieks", f"figure6.pdf")
 fig.savefig(filepath)
 print(f"Saved to {filepath}")
