@@ -1,13 +1,36 @@
+import jax
 import jax.numpy as jnp
 import pytest
 
+from pof.convenience import discretize_transitions, linearize_observation_model
 from pof.ivp import logistic
+from pof.observations import NonlinearModel
 from pof.parallel_filtsmooth import linear_noiseless_filtering as pfilt
 from pof.parallel_filtsmooth import smoothing as psmooth
 from pof.sequential_filtsmooth import extended_kalman_filter as sfilt
 from pof.sequential_filtsmooth import smoothing as ssmooth
-from pof.solver import sequential_eks_solve
-from tests.simple_linear_model import get_model, linearize_model
+from pof.transitions import IWP, projection_matrix
+from pof.utils import MVNSqrt
+
+
+def get_model():
+    iwp = IWP(num_derivatives=0, wiener_process_dimension=1)
+
+    E0 = projection_matrix(iwp, 0)
+    obsmod = NonlinearModel(lambda x: E0 @ x)
+
+    x0 = MVNSqrt(jnp.zeros(1), jnp.zeros((1, 1)))
+
+    time_grid = jnp.arange(10)
+    disc_transmod = discretize_transitions(iwp, time_grid)
+
+    return x0, disc_transmod, obsmod
+
+
+def linearize_model(obsmod, x0, N):
+    traj = jax.tree_map(lambda l: jnp.repeat(l[None, ...], N, axis=0), x0)
+    lin_obsmod = linearize_observation_model(obsmod, traj)
+    return lin_obsmod
 
 
 @pytest.fixture

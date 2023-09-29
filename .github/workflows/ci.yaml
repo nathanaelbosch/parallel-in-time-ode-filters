@@ -14,24 +14,35 @@ jobs:
     steps:
     - uses: actions/setup-python@v2
       with:
-        python-version: "3.x"
+        python-version: "3.10"
     - uses: actions/checkout@v2
+    - name: Use a virtual env
+      run: |
+        python -m venv .venv
+        . .venv/bin/activate
+    - name: Install the required packages
+      run: |
+        pip install tox==4.2.6 poetry==1.2.1
     - name: Lint with black through tox
       run: |
-        pip install tox
         tox -e black
     - name: Lint with isort through tox
       run: |
-        pip install isort
         tox -e isort
   tests:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/setup-python@v2
       with:
-        python-version: "3.x"
+        python-version: "3.10"
     - uses: actions/checkout@v2
+    - name: Use a virtual env
+      run: |
+        python -m venv .venv
+        . .venv/bin/activate
+    - name: Install the required packages
+      run: |
+        pip install tox==4.2.6 poetry==1.2.1
     - name: Run tests with pytest
       run: |
-        pip install tox
         tox -e py3
