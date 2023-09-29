@@ -2,10 +2,10 @@ from functools import partial
 
 import jax
 
+from pof.linearization.unscented import linearize_unscented
 from pof.observations import linearize, linearize_regularized
 from pof.parallel_filtsmooth import linear_filtsmooth as parallel_linear_filtsmooth
 from pof.sequential_filtsmooth import linear_filtsmooth as sequential_linear_filtsmooth
-from pof.linearization.unscented import linearize_unscented
 from pof.utils import MVNSqrt
 
 

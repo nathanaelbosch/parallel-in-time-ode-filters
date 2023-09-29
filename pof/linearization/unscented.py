@@ -1,13 +1,13 @@
 from functools import partial
-from typing import Tuple, Union, Optional, Callable, NamedTuple
+from typing import Callable, NamedTuple, Optional, Tuple, Union
 
 import jax
 import jax.numpy as jnp
+import jax.scipy.linalg as jlinalg
 import numpy as np
 
-from pof.observations import NonlinearModel, AffineModel
-from pof.utils import MVNSqrt, tria, cholesky_update_many
-import jax.scipy.linalg as jlinalg
+from pof.observations import AffineModel, NonlinearModel
+from pof.utils import MVNSqrt, cholesky_update_many, tria
 
 
 class SigmaPoints(NamedTuple):
