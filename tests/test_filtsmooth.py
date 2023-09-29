@@ -19,7 +19,7 @@ def test_equality():
     x0, disc_transmod, obsmod = get_model()
 
     out_ekf, _, _ = sfilt(x0, disc_transmod, obsmod)
-    out_eks = ssmooth(disc_transmod, out_ekf)
+    out_eks, _ = ssmooth(disc_transmod, out_ekf)
     assert out_ekf.mean.shape == out_eks.mean.shape
     assert out_ekf.chol.shape == out_eks.chol.shape
 
