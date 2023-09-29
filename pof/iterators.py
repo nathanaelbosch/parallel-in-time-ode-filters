@@ -25,12 +25,10 @@ def ieks_iterator(*, f, y0, ts, order, init="prior"):
 
 
 def _ieks_iterator(dtm, om, x0, init_traj):
-
     states, nll, obj, ssq = ieks_step(om=om, dtm=dtm, x0=x0, states=init_traj)
     yield states, nll, obj, ssq
 
     while True:
-
         nll_old, obj_old, states_old = nll, obj, states
 
         states, nll, obj, ssq = ieks_step(om=om, dtm=dtm, x0=x0, states=states_old)
@@ -85,7 +83,6 @@ def _qpm_ieks_iterator(
     yield states, nll, obj, reg
 
     while True:
-
         nll_old, obj_old, states_old = nll, obj, states
 
         dom = lom(om, jax.tree_map(lambda l: l[1:], states))
@@ -110,13 +107,11 @@ def _qpm_ieks_iterator(
 
 
 def lm_ieks_iterator(dtm, om, x0, init_traj, reg=1e0, nu=10.0):
-
     dom = lom_reg(om, init_traj, reg)
     out, nll, obj, ssq = fs(x0, dtm, dom)
     yield out, nll, obj, reg
 
     while True:
-
         nll_old, obj_old, out_old = nll, obj, out
 
         dom = lom_reg(om, jax.tree_map(lambda l: l[1:], out), reg)
@@ -151,7 +146,6 @@ def _admm_ieks_iterator(dtm, om, x0, init_traj, rho=1):
     yield states, nll, obj
 
     while True:
-
         nll_old, obj_old, mean_old = nll, obj, states.mean
 
         dom = linearize_at_previous_states(om, states)

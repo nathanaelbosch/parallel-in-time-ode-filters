@@ -152,7 +152,6 @@ METHODS = {
 @plac.flg("save", "Save data to csv file")
 @plac.flg("gpu_nocheck", "Do not assert that the GPU is working (when using CPU nodes)")
 def main(setupname, save=False, gpu_nocheck=False):
-
     print(f"jax.devices(): {jax.devices()}")
     print(f"[d.platform for d in jax.devices()]: {[d.platform for d in jax.devices()]}")
     device = jax.devices()[0]

@@ -15,7 +15,6 @@ def logistic(t0=0, tmax=10.0, y0=None):
 
 
 def lotkavolterra(t0=0.0, tmax=7, y0=None, p=None):
-
     y0 = y0 or jnp.array([1.0, 1.0])
     p = p or jnp.array([1.5, 1.0, 3.0, 1.0])
 
@@ -33,7 +32,6 @@ def lotkavolterra(t0=0.0, tmax=7, y0=None, p=None):
 
 
 def vanderpol(t0=0.0, tmax=6.3, y0=None, stiffness_constant=1e1):
-
     y0 = y0 or jnp.array([2.0, 0.0])
 
     @jax.jit
@@ -44,7 +42,6 @@ def vanderpol(t0=0.0, tmax=6.3, y0=None, stiffness_constant=1e1):
 
 
 def fitzhughnagumo(t0=0.0, tmax=100.0, y0=None, p=None):
-
     y0 = y0 or jnp.array([1.0, 1.0])
     p = p or jnp.array([0.7, 0.8, 1 / 12.5, 0.5])
 
@@ -64,7 +61,6 @@ def fitzhughnagumo(t0=0.0, tmax=100.0, y0=None, p=None):
 
 
 def rober(t0=0.0, tmax=1e11, y0=None, p=None):
-
     y0 = y0 or jnp.array([1.0, 0.0, 0.0])
     p = p or jnp.array([0.04, 3e7, 1e4])
 

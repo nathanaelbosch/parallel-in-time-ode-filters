@@ -67,7 +67,6 @@ def _qr(A: jnp.ndarray, return_q=False):
 
 
 def _householder(a):
-
     alpha = a[0]
     s = jnp.sum(a[1:] ** 2)
 

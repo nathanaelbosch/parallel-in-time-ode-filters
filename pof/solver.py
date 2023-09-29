@@ -74,7 +74,6 @@ def solve(
 
 
 def sequential_eks_solve(*, f, y0, ts, order, return_full_states=False, calibrate=True):
-
     setup = set_up_solver(f=f, y0=y0, ts=ts, order=order)
 
     dtm = setup["dtm"]

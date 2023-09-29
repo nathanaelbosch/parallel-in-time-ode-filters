@@ -110,7 +110,6 @@ def block_and_return_state(f):
 
 @plac.pos("gpu_name", "GPU Name")
 def main(gpu_name):
-
     dts = 2.0 ** -np.arange(0, 19)
     # 1060 can only handle up to 14; 15 if we try manually afterwards; 16 does not work
     # dts = 2.0 ** -np.arange(0, 14)

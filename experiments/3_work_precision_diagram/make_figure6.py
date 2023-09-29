@@ -57,7 +57,7 @@ PN_MARKERS = ["o", "s", "p", "h", "P", "X", "d", "p", "h", "H", "8"]
 
 
 def plot_xy(*, df, x, y, ax, labels=True):
-    for (i, key) in enumerate(classic_keys):
+    for i, key in enumerate(classic_keys):
         label = key
         ax.plot(
             df[x(key)],
@@ -119,7 +119,7 @@ def plot_scaling(df, ax, labels=True):
 def plot_iterations(df, ax, labels=True):
     # replace_large_with_inf(df)
 
-    for (i, key) in enumerate(classic_keys):
+    for i, key in enumerate(classic_keys):
         label = key
         ax.plot(
             df["Ns"],

@@ -97,7 +97,6 @@ plt.rcParams.update(figsizes.jmlr2001(nrows=2, ncols=3))
 fig, axes = plt.subplots(2, len(IVPS), sharex="col")
 
 for i, (ivp, N) in enumerate(zip(IVPS, Ns)):
-
     sol_true = solve_diffrax(
         ivp.f,
         ivp.y0,
