@@ -35,6 +35,11 @@ optional = true
 jaxlib = {version = "^0.3.7+cuda11.cudnn82", source = "jax"}
 jax = {extras = ["cuda"], version = "^0.3.23"}
 
+
+[tool.poetry.group.dev.dependencies]
+black = {extras = ["jupyter"], version = "^23.9.1"}
+isort = "^5.12.0"
+
 [[tool.poetry.source]]
 name = "jax"
 url = "https://storage.googleapis.com/jax-releases/jax_cuda_releases.html"
