@@ -1,5 +1,7 @@
 # Parallel-in-time Probabilistic Numerical ODE Solvers
 
+This repo contains the implementation and experiment code for the paper "Parallel-in-Time Probabilistic Numerical ODE Solvers", soon available on arXiv.
+
 
 ## Project environment setup
 The project uses [poetry](https://python-poetry.org/).
@@ -47,12 +49,19 @@ def plot_result(ts, ys, ax=None):
 
 
 fig, axes = plt.subplots(2, 1)
-plot_result(ts_par, ys_par, ax=axes[0])
-plot_result(ts_seq, ys_seq, ax=axes[1])
+plot_result(ts_seq, ys_seq, ax=axes[0])
+plot_result(ts_par, ys_par, ax=axes[1])
 axes[0].set_ylim(-3, 3)
+axes[0].set_title("Sequential")
 axes[1].set_ylim(-3, 3)
+axes[1].set_title("Parallel")
+fig.tight_layout()
 plt.show()
 ```
+
+<p align="center">
+<img alt="README Figure" src="./readmefig.svg" width="80%">
+</p>
 
 
 ## Testing
