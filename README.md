@@ -1,6 +1,6 @@
 # Parallel-in-time Probabilistic Numerical ODE Solvers
 
-This repo contains the implementation and experiment code for the paper "Parallel-in-Time Probabilistic Numerical ODE Solvers", soon available on arXiv.
+This repo contains the implementation and experiment code for the paper "Parallel-in-Time Probabilistic Numerical ODE Solvers", available on [arXiv](https://arxiv.org/abs/2310.01145).
 
 
 ## Project environment setup
@@ -70,3 +70,16 @@ Just use [`tox`](https://tox.wiki/en/latest/):
 tox -e py3
 ```
 Or even just `tox` to also run [`black`](https://github.com/psf/black) and [`isort`](https://pycqa.github.io/isort/).
+
+
+## Reference
+```
+@misc{bosch2023parallelintime,
+      title={Parallel-in-Time Probabilistic Numerical ODE Solvers}, 
+      author={Nathanael Bosch and Adrien Corenflos and Fatemeh Yaghoobi and Filip Tronarp and Philipp Hennig and Simo Särkkä},
+      year={2023},
+      eprint={2310.01145},
+      archivePrefix={arXiv},
+      primaryClass={math.NA}
+}
+```
