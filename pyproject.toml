@@ -22,18 +22,14 @@ celluloid = "^0.2.0"
 # jax = {extras = ["cuda"], version = "^0.3.23"}
 # the above is what I previously had but then tox didn't work.
 # this has been fixed by using instead:
-jaxlib = "^0.3.7"
-jax = "^0.3.23"
+jaxlib = "^0.4.14"
+jax = "^0.4.13"
+tornadox = "^0.0.1"
 # if gpu does not work, try `poetry install --with gpu`, or uncomment the ones from above
 diffrax = "^0.2.1"
-tornadox = "^0.0.1"
+equinox = "^0.11.2"
+optax = "^0.1.7"
 
-[tool.poetry.group.gpu]
-optional = true
-
-[tool.poetry.group.gpu.dependencies]
-jaxlib = {version = "^0.3.7+cuda11.cudnn82", source = "jax"}
-jax = {extras = ["cuda"], version = "^0.3.23"}
 
 
 [tool.poetry.group.dev.dependencies]
@@ -44,8 +40,7 @@ pytest = "^7.4.2"
 [[tool.poetry.source]]
 name = "jax"
 url = "https://storage.googleapis.com/jax-releases/jax_cuda_releases.html"
-default = false
-secondary = false
+priority = "explicit"
 
 
 [build-system]
